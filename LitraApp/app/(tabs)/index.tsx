@@ -7,6 +7,17 @@ import QuoteCard from '../../components/QuoteCard';
 
 const { width } = Dimensions.get('window');
 
+// Tema Renk Tanımlamaları (QuoteCard.js ile uyumlu olmalı)
+const THEME_LIST = [
+  { id: 'classic', color: '#FDFCF8', label: 'Klasik' },
+  { id: 'modern', color: '#1A1A1B', label: 'Modern' },
+  { id: 'nature', color: '#E8F5E9', label: 'Doğa' },
+  { id: 'vintage', color: '#F4ECD8', label: 'Eski Kitap' },
+  { id: 'midnight', color: '#0D1B2A', label: 'Gece' },
+  { id: 'rose', color: '#FCE4EC', label: 'Zarif' },
+  { id: 'ocean', color: '#E0F2F1', label: 'Deniz' },
+];
+
 export default function Index() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('camera'); 
@@ -32,19 +43,19 @@ export default function Index() {
 
     if (!result.canceled) {
       setLoading(true);
-      // Simüle OCR: Buraya daha sonra gerçek bir API bağlayabilirsin.
+      // Simüle OCR İşlemi
       setTimeout(() => {
-        setQuote("Okumak, özgürlüğe uçmaktır. Bu metin kameradan başarıyla tarandı.");
-        setBookTitle("Örnek Kitap");
-        setAuthor("Örnek Yazar");
+        setQuote("Gerçek bilgi, yaparak öğrenilir. Deneyim en iyi öğretmendir.");
+        setBookTitle("Hayatın İçinden");
+        setAuthor("Anonim");
         setLoading(false);
       }, 1500);
     }
   };
 
   const saveToLibrary = async () => {
-    if (!quote || quote.length < 5) {
-      Alert.alert("Uyarı", "Lütfen geçerli bir alıntı girin.");
+    if (!quote || quote.length < 5 || quote.includes("taramak için kamerayı açın")) {
+      Alert.alert("Uyarı", "Lütfen geçerli bir alıntı girin veya tarayın.");
       return;
     }
 
@@ -73,11 +84,9 @@ export default function Index() {
     }
   };
 
-  // --- ARAYÜZ ---
-
   return (
     <SafeAreaView style={styles.container}>
-      {/* Sekme Seçici */}
+      {/* Üst Sekme Seçici */}
       <View style={styles.tabContainer}>
         <TouchableOpacity 
           style={[styles.tabButton, activeTab === 'camera' && styles.activeTab]} 
@@ -96,43 +105,53 @@ export default function Index() {
 
       <ScrollView contentContainerStyle={styles.contentWrapper} showsVerticalScrollIndicator={false}>
         
-        <QuoteCard 
-          quote={loading ? "Metin taranıyor..." : quote} 
-          bookTitle={bookTitle}
-          author={author}
-          theme={theme} 
-        />
+<QuoteCard 
+  quote={loading ? "Metin taranıyor..." : quote} 
+  bookTitle={bookTitle}
+  author={author}
+  theme={theme} 
+  // Sekmeye göre farklı placeholder gönderiyoruz:
+  placeholder={
+    activeTab === 'camera' 
+      ? "Kitaptan taradığınız metin burada görünecek..." 
+      : "Alıntınız burada görünecek..."
+  }
+/>
 
         {activeTab === 'camera' ? (
           <View style={styles.actionSection}>
-            <Text style={styles.infoText}>Kitap sayfasındaki o can alıcı cümleyi tara.</Text>
+            <Text style={styles.infoText}>Kitap sayfasındaki cümleyi tara, Litra karta dönüştürsün.</Text>
             <TouchableOpacity style={styles.cameraMainButton} onPress={takePhoto} disabled={loading}>
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Taramayı Başlat</Text>}
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.manualSection}>
-            <TextInput 
-              style={[styles.input, { height: 100 }]} 
-              multiline 
-              placeholder="Alıntıyı buraya yazın..."
-              value={quote}
-              onChangeText={setQuote}
-            />
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <TextInput 
-                style={[styles.input, { flex: 1 }]} 
-                placeholder="Kitap Adı"
-                value={bookTitle}
-                onChangeText={setBookTitle}
-              />
-              <TextInput 
-                style={[styles.input, { flex: 1 }]} 
-                placeholder="Yazar"
-                value={author}
-                onChangeText={setAuthor}
-              />
-            </View>
+<TextInput 
+  style={[styles.input, { height: 100 }]} 
+  multiline 
+  placeholder="Alıntıyı buraya yazın..."
+  placeholderTextColor="#666" // Daha koyu ve okunur gri
+  value={quote}
+  onChangeText={setQuote}
+/>
+
+<View style={{ flexDirection: 'row', gap: 10 }}>
+  <TextInput 
+    style={[styles.input, { flex: 1 }]} 
+    placeholder="Kitap Adı"
+    placeholderTextColor="#666" // Daha koyu gri
+    value={bookTitle}
+    onChangeText={setBookTitle}
+  />
+  <TextInput 
+    style={[styles.input, { flex: 1 }]} 
+    placeholder="Yazar"
+    placeholderTextColor="#666" // Daha koyu gri
+    value={author}
+    onChangeText={setAuthor}
+  />
+</View>
           </View>
         )}
 
@@ -143,22 +162,28 @@ export default function Index() {
           </TouchableOpacity>
         )}
 
-        {/* Tema Seçici */}
+        {/* GÖRÜNÜM SLIDER */}
         <View style={styles.themeContainer}>
           <Text style={styles.themeLabel}>GÖRÜNÜM STİLİ</Text>
-          <View style={styles.themeButtons}>
-            {['classic', 'modern', 'nature'].map((t) => (
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            contentContainerStyle={styles.themeScrollContent}
+          >
+            {THEME_LIST.map((t) => (
               <TouchableOpacity 
-                key={t}
+                key={t.id}
                 style={[
                   styles.themeButton, 
-                  { backgroundColor: t === 'classic' ? '#FDFCF8' : t === 'modern' ? '#1A1A1B' : '#E8F5E9' }, 
-                  theme === t && styles.activeTheme
+                  { backgroundColor: t.color }, 
+                  theme === t.id && styles.activeTheme
                 ]}
-                onPress={() => setTheme(t)}
-              />
+                onPress={() => setTheme(t.id)}
+              >
+                {theme === t.id && <View style={styles.checkDot} />}
+              </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -172,7 +197,7 @@ const styles = StyleSheet.create({
   activeTab: { backgroundColor: '#FFFFFF', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1 },
   tabText: { fontWeight: '600', color: '#6C757D' },
   activeTabText: { color: '#007AFF' },
-  contentWrapper: { alignItems: 'center', paddingBottom: 40 },
+  contentWrapper: { alignItems: 'center', paddingBottom: 60 },
   actionSection: { width: '90%', alignItems: 'center', marginTop: 10 },
   cameraMainButton: { backgroundColor: '#007AFF', width: '100%', padding: 18, borderRadius: 16, alignItems: 'center' },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
@@ -181,9 +206,40 @@ const styles = StyleSheet.create({
   input: { backgroundColor: '#FFF', borderRadius: 12, padding: 15, marginBottom: 10, borderWidth: 1, borderColor: '#DEE2E6' },
   saveLibraryButton: { backgroundColor: '#FF9500', width: '90%', padding: 18, borderRadius: 16, alignItems: 'center', marginTop: 15, elevation: 3 },
   saveButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  themeContainer: { marginTop: 30, alignItems: 'center' },
-  themeLabel: { fontSize: 10, fontWeight: 'bold', color: '#ADB5BD', letterSpacing: 1.5, marginBottom: 10 },
-  themeButtons: { flexDirection: 'row', gap: 15 },
-  themeButton: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: '#DEE2E6' },
-  activeTheme: { borderColor: '#007AFF', borderWidth: 2.5 },
+  
+  // Slider Stilleri
+  themeContainer: { marginTop: 30, width: '100%' },
+  themeLabel: { fontSize: 10, fontWeight: 'bold', color: '#ADB5BD', letterSpacing: 1.5, marginBottom: 5, textAlign: 'center' },
+  themeScrollContent: { paddingHorizontal: 20, paddingVertical: 10, gap: 15 },
+themeButton: { 
+    width: 44, 
+    height: 44, 
+    borderRadius: 22, 
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFF', // Butonun ana rengi dışarıdan gelecek
+    // Hafif bir gölge pürüzleri gizler
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    overflow: 'hidden', // Kenar taşmalarını kırpar
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)', // Çok hafif bir dış çerçeve
+  },
+  activeTheme: { 
+    // Mavi çerçeve yerine butonu biraz daha vurgulu yapalım
+    borderWidth: 2,
+    borderColor: '#007bffce',
+    // Ölçeklemeyi (scale) 1.1'den 1.05'e çekmek tırtıklanmayı azaltır
+    transform: [{ scale: 1.05 }] 
+  },
+  checkDot: { 
+    // Seçili temayı belirten nokta
+    width: 6, 
+    height: 6, 
+    borderRadius: 3, 
+    backgroundColor: '#007bffce' 
+  }
 });

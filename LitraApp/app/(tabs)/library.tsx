@@ -3,14 +3,13 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Alert
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 
-// TypeScript kullanıyorsan objenin yapısını tanıtıyoruz (Kırmızı çizgileri bitirir)
+// TypeScript tipi (TSX kullanıyorsan kalsın, JS ise silebilirsin)
 interface QuoteItem {
   id: string;
   quote: string;
   bookTitle: string;
   author: string;
-  theme: 'classic' | 'modern' | 'nature';
-  date?: string;
+  theme: string;
 }
 
 export default function LibraryScreen() {
@@ -35,7 +34,7 @@ export default function LibraryScreen() {
   };
 
   const deleteQuote = (id: string) => {
-    Alert.alert("Sil", "bu alıntıyı silmek istediğine emin misin?", [
+    Alert.alert("Alıntıyı Sil", "Bu alıntıyı kütüphanenden silmek istediğine emin misin?", [
       { text: "Vazgeç", style: "cancel" },
       { 
         text: "Sil", 
@@ -50,20 +49,27 @@ export default function LibraryScreen() {
   };
 
   const renderItem = ({ item }: { item: QuoteItem }) => (
-    <View style={[styles.quoteCard, styles[item.theme]]}>
-      {/* Yazı rengini temanın içine gömdüğümüz için burada hata almayacaksın */}
+    <View style={[
+      styles.quoteCard, 
+      styles[item.theme] || styles.classic // Dinamik Tema Seçimi
+    ]}>
       <Text 
         style={[
           styles.quoteText, 
-          { color: item.theme === 'modern' ? '#FFF' : '#333' }
+          { color: (item.theme === 'modern' || item.theme === 'midnight') ? '#FFF' : '#333' }
         ]} 
         numberOfLines={3}
       >
         "{item.quote}"
       </Text>
       <View style={styles.footer}>
-        <Text style={styles.bookInfo}>{item.bookTitle} — {item.author}</Text>
-        <TouchableOpacity onPress={() => deleteQuote(item.id)}>
+        <View style={styles.infoWrapper}>
+          <View style={[styles.accentLine, { backgroundColor: (item.theme === 'modern' || item.theme === 'midnight') ? '#555' : '#DDD' }]} />
+          <Text style={[styles.bookInfo, { color: (item.theme === 'modern' || item.theme === 'midnight') ? '#AAA' : '#888' }]}>
+            {item.bookTitle} — {item.author}
+          </Text>
+        </View>
+        <TouchableOpacity onPress={() => deleteQuote(item.id)} style={styles.deleteArea}>
           <Text style={styles.deleteBtn}>🗑️</Text>
         </TouchableOpacity>
       </View>
@@ -72,15 +78,16 @@ export default function LibraryScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.header}>Kitaplığım</Text>
+      <Text style={styles.headerTitle}>Kitaplığım</Text>
       <FlatList
         data={quotes}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Henüz kaydedilmiş bir alıntı yok. İlk alıntını oluştur!</Text>
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>Henüz bir alıntı eklemedin. Oluştur sayfasından ilk alıntını kaydedebilirsin! ✨</Text>
           </View>
         }
       />
@@ -90,29 +97,48 @@ export default function LibraryScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
-  header: { fontSize: 24, fontWeight: 'bold', padding: 20, color: '#1A1A1A', paddingTop: 60 },
+  headerTitle: { fontSize: 28, fontWeight: '800', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 10, color: '#1A1A1A' },
   listContent: { padding: 15, paddingBottom: 100 },
+  
+  // Ana Kart Yapısı
   quoteCard: { 
     padding: 20, 
-    borderRadius: 15, 
+    borderRadius: 20, 
     marginBottom: 15, 
-    elevation: 3, 
+    elevation: 4, 
     shadowColor: '#000', 
     shadowOpacity: 0.1, 
-    shadowRadius: 8 
+    shadowRadius: 10,
+    borderLeftWidth: 6,
   },
-  classic: { backgroundColor: '#FDFCF8', borderLeftWidth: 6, borderLeftColor: '#E6E2D3' },
-  modern: { backgroundColor: '#1A1A1B', borderLeftWidth: 6, borderLeftColor: '#007AFF' },
-  nature: { backgroundColor: '#E8F5E9', borderLeftWidth: 6, borderLeftColor: '#A5D6A7' },
+
+  // Tema Renkleri
+  classic: { backgroundColor: '#FDFCF8', borderLeftColor: '#E6E2D3' },
+  modern: { backgroundColor: '#1A1A1B', borderLeftColor: '#007AFF' },
+  nature: { backgroundColor: '#E8F5E9', borderLeftColor: '#A5D6A7' },
+  vintage: { backgroundColor: '#F4ECD8', borderLeftColor: '#8D6E63' },
+  midnight: { backgroundColor: '#0D1B2A', borderLeftColor: '#778DA9' },
+  rose: { backgroundColor: '#FCE4EC', borderLeftColor: '#F06292' },
+  ocean: { backgroundColor: '#E0F2F1', borderLeftColor: '#4DB6AC' },
+
   quoteText: { 
     fontSize: 16, 
     fontStyle: 'italic', 
     lineHeight: 24,
-    marginBottom: 15 
+    marginBottom: 15,
+    fontWeight: '500'
   },
-  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 0.5, borderTopColor: '#ddd', paddingTop: 10 },
-  bookInfo: { fontSize: 11, fontWeight: 'bold', color: '#888', textTransform: 'uppercase', flex: 1 },
-  deleteBtn: { fontSize: 20, marginLeft: 10 },
-  emptyContainer: { flex: 1, alignItems: 'center', marginTop: 100 },
-  emptyText: { textAlign: 'center', color: '#ADB5BD', paddingHorizontal: 40, fontSize: 16 }
+  footer: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    marginTop: 5
+  },
+  infoWrapper: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  accentLine: { width: 2, height: 12, marginRight: 8, borderRadius: 1 },
+  bookInfo: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  deleteArea: { padding: 5 },
+  deleteBtn: { fontSize: 18, opacity: 0.7 },
+  emptyState: { alignItems: 'center', marginTop: 100, paddingHorizontal: 40 },
+  emptyText: { textAlign: 'center', color: '#ADB5BD', fontSize: 15, lineHeight: 22 }
 });
