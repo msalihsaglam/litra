@@ -7,7 +7,6 @@ import QuoteCard from '../../components/QuoteCard';
 
 const { width } = Dimensions.get('window');
 
-// Tema Renk Tanımlamaları (QuoteCard.js ile uyumlu olmalı)
 const THEME_LIST = [
   { id: 'classic', color: '#FDFCF8', label: 'Klasik' },
   { id: 'modern', color: '#1A1A1B', label: 'Modern' },
@@ -24,17 +23,17 @@ export default function Index() {
   const [quote, setQuote] = useState("Kitaptan bir alıntı taramak için kamerayı açın.");
   const [bookTitle, setBookTitle] = useState("");
   const [author, setAuthor] = useState("");
+  const [pageNumber, setPageNumber] = useState(""); // Yeni
+  const [category, setCategory] = useState("");     // Yeni
   const [theme, setTheme] = useState('classic');
   const [loading, setLoading] = useState(false);
 
-  // --- OCR FONKSİYONU ---
   const recognizeText = async (base64Image: string) => {
     try {
       const formData = new FormData();
-      // Base64 verisini API formatına uygun hale getiriyoruz
       formData.append('base64Image', `data:image/jpg;base64,${base64Image}`);
-      formData.append('language', 'tur'); // TÜRKÇE dil desteği
-      formData.append('apikey', 'K81155988288957'); // Deneme API Key (Günde 500 istek)
+      formData.append('language', 'tur');
+      formData.append('apikey', 'K81155988288957');
       formData.append('isOverlayRequired', 'false');
 
       const response = await fetch('https://api.ocr.space/parse/image', {
@@ -46,106 +45,100 @@ export default function Index() {
       
       if (result.ParsedResults && result.ParsedResults.length > 0) {
         let detectedText = result.ParsedResults[0].ParsedText;
-        
-        // Metni temizleme: Gereksiz satır başlarını tek bir boşlukla değiştir
         const cleanText = detectedText.replace(/\r?\n|\r/g, " ").trim();
-        
         setQuote(cleanText);
-        Alert.alert("Başarılı", "Metin başarıyla tarandı. Düzenlemek isterseniz 'Elle Gir' bölümüne geçebilirsiniz.");
+        Alert.alert("Başarılı", "Metin başarıyla tarandı.");
       } else {
-        Alert.alert("Hata", "Görüntüdeki metin okunamadı. Lütfen ışıklı bir ortamda, yazıyı ortalayarak tekrar çekin.");
+        Alert.alert("Hata", "Görüntüdeki metin okunamadı.");
       }
     } catch (error) {
-      Alert.alert("Hata", "Bağlantı sorunu oluştu veya sunucu yanıt vermedi.");
+      Alert.alert("Hata", "Bağlantı sorunu oluştu.");
     } finally {
       setLoading(false);
     }
   };
 
-  // --- KAMERA FONKSİYONU ---
-const takePhoto = async () => {
-  const { granted } = await ImagePicker.requestCameraPermissionsAsync();
-  if (!granted) {
-    Alert.alert("İzin Gerekli", "Kamera erişimi onaylanmadı.");
-    return;
-  }
-
-  const result = await ImagePicker.launchCameraAsync({
-    allowsEditing: true, 
-    // aspect: [4, 3] satırını tamamen sildik veya yorum satırı yaptık
-    quality: 0.8, // IBAN gibi küçük metinler için netlik önemli, kaliteyi artırdık
-    base64: true,
-  });
-
-  if (!result.canceled) {
-    setLoading(true);
-    recognizeText(result.assets[0].base64!);
-  }
-};
-
-  const saveToLibrary = async () => {
-    if (!quote || quote.length < 5 || quote.includes("taramak için kamerayı açın")) {
-      Alert.alert("Uyarı", "Lütfen geçerli bir alıntı girin veya tarayın.");
+  const takePhoto = async () => {
+    const { granted } = await ImagePicker.requestCameraPermissionsAsync();
+    if (!granted) {
+      Alert.alert("İzin Gerekli", "Kamera erişimi onaylanmadı.");
       return;
     }
 
-    try {
-      const newEntry = {
-        id: Date.now().toString(),
-        quote,
-        bookTitle: bookTitle || "Bilinmeyen Kitap",
-        author: author || "Bilinmeyen Yazar",
-        theme,
-        date: new Date().toLocaleDateString('tr-TR'),
-      };
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true, 
+      quality: 0.8,
+      base64: true,
+    });
 
-      const existingData = await AsyncStorage.getItem('litra_quotes');
-      const currentList = existingData ? JSON.parse(existingData) : [];
-      const updatedList = [newEntry, ...currentList];
-      
-      await AsyncStorage.setItem('litra_quotes', JSON.stringify(updatedList));
-
-      Alert.alert("Kaydedildi!", "Alıntın kütüphanene eklendi. ✨", [
-        { text: "Yeni Ekle", onPress: () => { setQuote(""); setBookTitle(""); setAuthor(""); } },
-        { text: "Kitaplığa Git", onPress: () => router.push('/library') }
-      ]);
-    } catch (e) {
-      Alert.alert("Hata", "Kaydedilirken teknik bir sorun oluştu.");
+    if (!result.canceled) {
+      setLoading(true);
+      recognizeText(result.assets[0].base64!);
     }
   };
 
+const saveToLibrary = async () => {
+  if (!quote || quote.length < 5 || quote.includes("taramak için kamerayı açın")) {
+    Alert.alert("Uyarı", "Lütfen geçerli bir alıntı girin veya tarayın.");
+    return;
+  }
+
+  try {
+    const newEntry = {
+      id: Date.now().toString(),
+      quote,
+      bookTitle: bookTitle || "Bilinmeyen Kitap",
+      author: author || "Bilinmeyen Yazar",
+      pageNumber: pageNumber || "",
+      category: category || "",
+      theme,
+      date: new Date().toLocaleDateString('tr-TR'),
+    };
+
+    const existingData = await AsyncStorage.getItem('litra_quotes');
+    const currentList = existingData ? JSON.parse(existingData) : [];
+    const updatedList = [newEntry, ...currentList];
+    
+    await AsyncStorage.setItem('litra_quotes', JSON.stringify(updatedList));
+
+    // --- BURASI DEĞİŞTİ: KAYDETTİĞİ ANDA SIFIRLA ---
+    setQuote("Kitaptan bir alıntı taramak için kamerayı açın.");
+    setBookTitle("");
+    setAuthor("");
+    setPageNumber("");
+    setCategory("");
+    setTheme("classic");
+    setActiveTab("camera"); // Sekmeyi de default fotoğraf çek moduna al
+
+    Alert.alert("Kaydedildi!", "Alıntın kütüphanene eklendi. ✨", [
+      { text: "Tamam" },
+      { text: "Kitaplığa Git", onPress: () => router.push('/library') }
+    ]);
+  } catch (e) {
+    Alert.alert("Hata", "Kaydedilirken teknik bir sorun oluştu.");
+  }
+};
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Üst Sekme Seçici */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity 
-          style={[styles.tabButton, activeTab === 'camera' && styles.activeTab]} 
-          onPress={() => setActiveTab('camera')}
-        >
+        <TouchableOpacity style={[styles.tabButton, activeTab === 'camera' && styles.activeTab]} onPress={() => setActiveTab('camera')}>
           <Text style={[styles.tabText, activeTab === 'camera' && styles.activeTabText]}>📷 Fotoğraf Çek</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.tabButton, activeTab === 'manual' && styles.activeTab]} 
-          onPress={() => setActiveTab('manual')}
-        >
+        <TouchableOpacity style={[styles.tabButton, activeTab === 'manual' && styles.activeTab]} onPress={() => setActiveTab('manual')}>
           <Text style={[styles.tabText, activeTab === 'manual' && styles.activeTabText]}>✍️ Elle Gir</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.contentWrapper} showsVerticalScrollIndicator={false}>
-        
 <QuoteCard 
   quote={loading ? "Metin taranıyor..." : quote} 
   bookTitle={bookTitle}
   author={author}
   theme={theme} 
-  // Sekmeye göre farklı placeholder gönderiyoruz:
-  placeholder={
-    activeTab === 'camera' 
-      ? "Kitaptan taradığınız metin burada görünecek..." 
-      : "Alıntınız burada görünecek..."
-  }
+  placeholder={"..."}
+  pageNumber={pageNumber} // Bunu ekle
+  category={category}     // Bunu ekle
 />
 
         {activeTab === 'camera' ? (
@@ -157,59 +150,51 @@ const takePhoto = async () => {
           </View>
         ) : (
           <View style={styles.manualSection}>
-<TextInput 
-  style={[styles.input, { height: 100 }]} 
-  multiline 
-  placeholder="Alıntıyı buraya yazın..."
-  placeholderTextColor="#666" // Daha koyu ve okunur gri
-  value={quote}
-  onChangeText={setQuote}
-/>
+            <TextInput 
+              style={[styles.input, { height: 100 }]} 
+              multiline 
+              placeholder="Alıntıyı buraya yazın..."
+              placeholderTextColor="#666"
+              value={quote}
+              onChangeText={setQuote}
+            />
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TextInput style={[styles.input, { flex: 1 }]} placeholder="Kitap Adı" placeholderTextColor="#666" value={bookTitle} onChangeText={setBookTitle} />
+              <TextInput style={[styles.input, { flex: 1 }]} placeholder="Yazar" placeholderTextColor="#666" value={author} onChangeText={setAuthor} />
+            </View>
 
-<View style={{ flexDirection: 'row', gap: 10 }}>
-  <TextInput 
-    style={[styles.input, { flex: 1 }]} 
-    placeholder="Kitap Adı"
-    placeholderTextColor="#666" // Daha koyu gri
-    value={bookTitle}
-    onChangeText={setBookTitle}
-  />
-  <TextInput 
-    style={[styles.input, { flex: 1 }]} 
-    placeholder="Yazar"
-    placeholderTextColor="#666" // Daha koyu gri
-    value={author}
-    onChangeText={setAuthor}
-  />
-</View>
+            {/* Yeni Bölüm: Sayfa No ve Kategori */}
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TextInput 
+                style={[styles.input, { flex: 1 }]} 
+                placeholder="Sayfa No" 
+                placeholderTextColor="#666" 
+                keyboardType="numeric"
+                value={pageNumber} 
+                onChangeText={setPageNumber} 
+              />
+              <TextInput 
+                style={[styles.input, { flex: 2 }]} 
+                placeholder="Tür (Örn: Roman)" 
+                placeholderTextColor="#666" 
+                value={category} 
+                onChangeText={setCategory} 
+              />
+            </View>
           </View>
         )}
 
-        {/* ANA KAYDET BUTONU */}
         {!loading && (
           <TouchableOpacity style={styles.saveLibraryButton} onPress={saveToLibrary}>
             <Text style={styles.saveButtonText}>📌 Kitaplığıma Kaydet</Text>
           </TouchableOpacity>
         )}
 
-        {/* GÖRÜNÜM SLIDER */}
         <View style={styles.themeContainer}>
           <Text style={styles.themeLabel}>GÖRÜNÜM STİLİ</Text>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false} 
-            contentContainerStyle={styles.themeScrollContent}
-          >
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.themeScrollContent}>
             {THEME_LIST.map((t) => (
-              <TouchableOpacity 
-                key={t.id}
-                style={[
-                  styles.themeButton, 
-                  { backgroundColor: t.color }, 
-                  theme === t.id && styles.activeTheme
-                ]}
-                onPress={() => setTheme(t.id)}
-              >
+              <TouchableOpacity key={t.id} style={[styles.themeButton, { backgroundColor: t.color }, theme === t.id && styles.activeTheme]} onPress={() => setTheme(t.id)}>
                 {theme === t.id && <View style={styles.checkDot} />}
               </TouchableOpacity>
             ))}
@@ -233,40 +218,34 @@ const styles = StyleSheet.create({
   buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   infoText: { color: '#6C757D', marginBottom: 15, textAlign: 'center', fontSize: 13 },
   manualSection: { width: '90%', marginTop: 10 },
-  input: { backgroundColor: '#FFF', borderRadius: 12, padding: 15, marginBottom: 10, borderWidth: 1, borderColor: '#DEE2E6' },
+  input: { backgroundColor: '#FFF', borderRadius: 12, padding: 15, marginBottom: 10, borderWidth: 1, borderColor: '#DEE2E6', color: '#1A1A1A' },
   saveLibraryButton: { backgroundColor: '#FF9500', width: '90%', padding: 18, borderRadius: 16, alignItems: 'center', marginTop: 15, elevation: 3 },
   saveButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  
-  // Slider Stilleri
   themeContainer: { marginTop: 30, width: '100%' },
   themeLabel: { fontSize: 10, fontWeight: 'bold', color: '#ADB5BD', letterSpacing: 1.5, marginBottom: 5, textAlign: 'center' },
   themeScrollContent: { paddingHorizontal: 20, paddingVertical: 10, gap: 15 },
-themeButton: { 
+  themeButton: { 
     width: 44, 
     height: 44, 
     borderRadius: 22, 
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFF', // Butonun ana rengi dışarıdan gelecek
-    // Hafif bir gölge pürüzleri gizler
+    backgroundColor: '#FFF',
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
-    overflow: 'hidden', // Kenar taşmalarını kırpar
+    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)', // Çok hafif bir dış çerçeve
+    borderColor: 'rgba(0,0,0,0.05)',
   },
   activeTheme: { 
-    // Mavi çerçeve yerine butonu biraz daha vurgulu yapalım
     borderWidth: 2,
     borderColor: '#007bffce',
-    // Ölçeklemeyi (scale) 1.1'den 1.05'e çekmek tırtıklanmayı azaltır
     transform: [{ scale: 1.05 }] 
   },
   checkDot: { 
-    // Seçili temayı belirten nokta
     width: 6, 
     height: 6, 
     borderRadius: 3, 

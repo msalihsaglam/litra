@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Dimensions } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
-const QuoteCard = ({ quote, bookTitle, author, theme = 'classic', placeholder }) => {
+const QuoteCard = ({ quote, bookTitle, author, theme = 'classic', placeholder, pageNumber, category }) => {
   // Tema tanımlamaları
   const themes = {
     classic: { bg: '#FDFCF8', text: '#2C2C2C', accent: '#8E8E8E' },
@@ -23,6 +23,13 @@ const QuoteCard = ({ quote, bookTitle, author, theme = 'classic', placeholder })
 
   return (
     <View style={[styles.card, { backgroundColor: activeTheme.bg }]}>
+      {/* Üst Kısım: Kategori/Tür Etiketi */}
+      {category ? (
+        <View style={[styles.badge, { backgroundColor: theme === 'modern' || theme === 'midnight' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.05)' }]}>
+          <Text style={[styles.badgeText, { color: activeTheme.accent }]}># {category}</Text>
+        </View>
+      ) : null}
+
       <Text style={[styles.quoteMark, { color: activeTheme.text, opacity: 0.1 }]}>“</Text>
       
       <Text style={[styles.quoteText, { color: activeTheme.text }]}>
@@ -31,9 +38,16 @@ const QuoteCard = ({ quote, bookTitle, author, theme = 'classic', placeholder })
 
       <View style={styles.footer}>
         <View style={[styles.line, { backgroundColor: activeTheme.accent }]} />
-        <Text style={[styles.bookInfo, { color: activeTheme.accent }]}>
-          {bookTitle || "Kitap Adı"} — {author || "Yazar"}
-        </Text>
+        <View>
+          <Text style={[styles.bookInfo, { color: activeTheme.accent }]}>
+            {bookTitle || "Kitap Adı"} — {author || "Yazar"}
+          </Text>
+          {pageNumber ? (
+            <Text style={[styles.pageInfo, { color: activeTheme.accent }]}>
+              Sayfa: {pageNumber}
+            </Text>
+          ) : null}
+        </View>
       </View>
     </View>
   );
@@ -51,8 +65,22 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     alignSelf: 'center',
     marginVertical: 10,
-    minHeight: 250,
+    minHeight: 260,
     justifyContent: 'center'
+  },
+  badge: {
+    position: 'absolute',
+    top: 20,
+    right: 25,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   quoteMark: {
     fontSize: 80,
@@ -67,14 +95,15 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'left',
     zIndex: 1,
+    marginTop: 10,
   },
   footer: {
-    marginTop: 30,
+    marginTop: 25,
   },
   line: {
     height: 1.5,
     width: 40,
-    marginBottom: 10,
+    marginBottom: 8,
     borderRadius: 2
   },
   bookInfo: {
@@ -83,6 +112,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1.2,
   },
+  pageInfo: {
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 2,
+    opacity: 0.8
+  }
 });
 
 export default QuoteCard;
