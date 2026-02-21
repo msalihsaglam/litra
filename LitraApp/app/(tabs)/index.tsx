@@ -27,31 +27,61 @@ export default function Index() {
   const [theme, setTheme] = useState('classic');
   const [loading, setLoading] = useState(false);
 
-  // --- FONKSİYONLAR ---
+  // --- OCR FONKSİYONU ---
+  const recognizeText = async (base64Image: string) => {
+    try {
+      const formData = new FormData();
+      // Base64 verisini API formatına uygun hale getiriyoruz
+      formData.append('base64Image', `data:image/jpg;base64,${base64Image}`);
+      formData.append('language', 'tur'); // TÜRKÇE dil desteği
+      formData.append('apikey', 'K81155988288957'); // Deneme API Key (Günde 500 istek)
+      formData.append('isOverlayRequired', 'false');
 
-  const takePhoto = async () => {
-    const { granted } = await ImagePicker.requestCameraPermissionsAsync();
-    if (!granted) {
-      Alert.alert("İzin Gerekli", "Kamera erişimi olmadan tarama yapılamaz.");
-      return;
-    }
+      const response = await fetch('https://api.ocr.space/parse/image', {
+        method: 'POST',
+        body: formData,
+      });
 
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setLoading(true);
-      // Simüle OCR İşlemi
-      setTimeout(() => {
-        setQuote("Gerçek bilgi, yaparak öğrenilir. Deneyim en iyi öğretmendir.");
-        setBookTitle("Hayatın İçinden");
-        setAuthor("Anonim");
-        setLoading(false);
-      }, 1500);
+      const result = await response.json();
+      
+      if (result.ParsedResults && result.ParsedResults.length > 0) {
+        let detectedText = result.ParsedResults[0].ParsedText;
+        
+        // Metni temizleme: Gereksiz satır başlarını tek bir boşlukla değiştir
+        const cleanText = detectedText.replace(/\r?\n|\r/g, " ").trim();
+        
+        setQuote(cleanText);
+        Alert.alert("Başarılı", "Metin başarıyla tarandı. Düzenlemek isterseniz 'Elle Gir' bölümüne geçebilirsiniz.");
+      } else {
+        Alert.alert("Hata", "Görüntüdeki metin okunamadı. Lütfen ışıklı bir ortamda, yazıyı ortalayarak tekrar çekin.");
+      }
+    } catch (error) {
+      Alert.alert("Hata", "Bağlantı sorunu oluştu veya sunucu yanıt vermedi.");
+    } finally {
+      setLoading(false);
     }
   };
+
+  // --- KAMERA FONKSİYONU ---
+const takePhoto = async () => {
+  const { granted } = await ImagePicker.requestCameraPermissionsAsync();
+  if (!granted) {
+    Alert.alert("İzin Gerekli", "Kamera erişimi onaylanmadı.");
+    return;
+  }
+
+  const result = await ImagePicker.launchCameraAsync({
+    allowsEditing: true, 
+    // aspect: [4, 3] satırını tamamen sildik veya yorum satırı yaptık
+    quality: 0.8, // IBAN gibi küçük metinler için netlik önemli, kaliteyi artırdık
+    base64: true,
+  });
+
+  if (!result.canceled) {
+    setLoading(true);
+    recognizeText(result.assets[0].base64!);
+  }
+};
 
   const saveToLibrary = async () => {
     if (!quote || quote.length < 5 || quote.includes("taramak için kamerayı açın")) {

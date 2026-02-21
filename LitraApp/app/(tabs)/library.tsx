@@ -49,10 +49,10 @@ export default function LibraryScreen() {
   };
 
   const renderItem = ({ item }: { item: QuoteItem }) => (
-    <View style={[
-      styles.quoteCard, 
-      styles[item.theme] || styles.classic // Dinamik Tema Seçimi
-    ]}>
+<View style={[
+  styles.quoteCard, 
+  (styles as any)[item.theme] || styles.classic 
+]}>
       <Text 
         style={[
           styles.quoteText, 
