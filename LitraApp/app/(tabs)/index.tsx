@@ -20,7 +20,7 @@ const THEME_LIST = [
 export default function Index() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('camera'); 
-  const [quote, setQuote] = useState("Kitaptan bir alıntı taramak için kamerayı açın.");
+  const [quote, setQuote] = useState("Rakamlar sınırları belirler; iyinin, mükemmelin sınırları yoktur.");
   const [bookTitle, setBookTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [pageNumber, setPageNumber] = useState(""); // Yeni
@@ -159,8 +159,8 @@ const saveToLibrary = async () => {
               onChangeText={setQuote}
             />
             <View style={{ flexDirection: 'row', gap: 10 }}>
-              <TextInput style={[styles.input, { flex: 1 }]} placeholder="Kitap Adı" placeholderTextColor="#666" value={bookTitle} onChangeText={setBookTitle} />
-              <TextInput style={[styles.input, { flex: 1 }]} placeholder="Yazar" placeholderTextColor="#666" value={author} onChangeText={setAuthor} />
+              <TextInput style={[styles.input, { flex: 1 }]} placeholder="Martı Jonathon Livingston" placeholderTextColor="#666" value={bookTitle} onChangeText={setBookTitle} />
+              <TextInput style={[styles.input, { flex: 1 }]} placeholder="Richard Bach" placeholderTextColor="#666" value={author} onChangeText={setAuthor} />
             </View>
 
             {/* Yeni Bölüm: Sayfa No ve Kategori */}
