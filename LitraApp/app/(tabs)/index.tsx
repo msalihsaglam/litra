@@ -23,8 +23,8 @@ export default function Index() {
   const [quote, setQuote] = useState("Rakamlar sınırları belirler; iyinin, mükemmelin sınırları yoktur.");
   const [bookTitle, setBookTitle] = useState("");
   const [author, setAuthor] = useState("");
-  const [pageNumber, setPageNumber] = useState(""); // Yeni
-  const [category, setCategory] = useState("");     // Yeni
+  const [pageNumber, setPageNumber] = useState(""); 
+  const [category, setCategory] = useState("");     
   const [theme, setTheme] = useState('classic');
   const [loading, setLoading] = useState(false);
 
@@ -77,50 +77,56 @@ export default function Index() {
     }
   };
 
-const saveToLibrary = async () => {
-  if (!quote || quote.length < 5 || quote.includes("taramak için kamerayı açın")) {
-    Alert.alert("Uyarı", "Lütfen geçerli bir alıntı girin veya tarayın.");
-    return;
-  }
+  const saveToLibrary = async () => {
+    if (!quote || quote.length < 5 || quote.includes("taramak için kamerayı açın")) {
+      Alert.alert("Uyarı", "Lütfen geçerli bir alıntı girin veya tarayın.");
+      return;
+    }
 
-  try {
-    const newEntry = {
-      id: Date.now().toString(),
-      quote,
-      bookTitle: bookTitle || "Bilinmeyen Kitap",
-      author: author || "Bilinmeyen Yazar",
-      pageNumber: pageNumber || "",
-      category: category || "",
-      theme,
-      date: new Date().toLocaleDateString('tr-TR'),
-    };
+    try {
+      const newEntry = {
+        id: Date.now().toString(),
+        quote,
+        bookTitle: bookTitle || "Bilinmeyen Kitap",
+        author: author || "Bilinmeyen Yazar",
+        pageNumber: pageNumber || "",
+        category: category || "",
+        theme,
+        date: new Date().toLocaleDateString('tr-TR'),
+      };
 
-    const existingData = await AsyncStorage.getItem('litra_quotes');
-    const currentList = existingData ? JSON.parse(existingData) : [];
-    const updatedList = [newEntry, ...currentList];
-    
-    await AsyncStorage.setItem('litra_quotes', JSON.stringify(updatedList));
+      const existingData = await AsyncStorage.getItem('litra_quotes');
+      const currentList = existingData ? JSON.parse(existingData) : [];
+      const updatedList = [newEntry, ...currentList];
+      
+      await AsyncStorage.setItem('litra_quotes', JSON.stringify(updatedList));
 
-    // --- BURASI DEĞİŞTİ: KAYDETTİĞİ ANDA SIFIRLA ---
-    setQuote("Kitaptan bir alıntı taramak için kamerayı açın.");
-    setBookTitle("");
-    setAuthor("");
-    setPageNumber("");
-    setCategory("");
-    setTheme("classic");
-    setActiveTab("camera"); // Sekmeyi de default fotoğraf çek moduna al
+      setQuote("Kitaptan bir alıntı taramak için kamerayı açın.");
+      setBookTitle("");
+      setAuthor("");
+      setPageNumber("");
+      setCategory("");
+      setTheme("classic");
+      setActiveTab("camera");
 
-    Alert.alert("Kaydedildi!", "Alıntın kütüphanene eklendi. ✨", [
-      { text: "Tamam" },
-      { text: "Kitaplığa Git", onPress: () => router.push('/library') }
-    ]);
-  } catch (e) {
-    Alert.alert("Hata", "Kaydedilirken teknik bir sorun oluştu.");
-  }
-};
+      Alert.alert("Kaydedildi!", "Alıntın kütüphanene eklendi. ✨", [
+        { text: "Tamam" },
+        { text: "Kitaplığa Git", onPress: () => router.push('/library') }
+      ]);
+    } catch (e) {
+      Alert.alert("Hata", "Kaydedilirken teknik bir sorun oluştu.");
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Üst Başlık Bölümü */}
+      <View style={styles.headerSection}>
+        <Text style={styles.headerTitle}>Litra</Text>
+        <Text style={styles.headerSubTitle}>Yeni alıntı ekle veya tara</Text>
+      </View>
+
+      {/* Sekme Seçici */}
       <View style={styles.tabContainer}>
         <TouchableOpacity style={[styles.tabButton, activeTab === 'camera' && styles.activeTab]} onPress={() => setActiveTab('camera')}>
           <Text style={[styles.tabText, activeTab === 'camera' && styles.activeTabText]}>📷 Fotoğraf Çek</Text>
@@ -131,15 +137,15 @@ const saveToLibrary = async () => {
       </View>
 
       <ScrollView contentContainerStyle={styles.contentWrapper} showsVerticalScrollIndicator={false}>
-<QuoteCard 
-  quote={loading ? "Metin taranıyor..." : quote} 
-  bookTitle={bookTitle}
-  author={author}
-  theme={theme} 
-  placeholder={"..."}
-  pageNumber={pageNumber} // Bunu ekle
-  category={category}     // Bunu ekle
-/>
+        <QuoteCard 
+          quote={loading ? "Metin taranıyor..." : quote} 
+          bookTitle={bookTitle}
+          author={author}
+          theme={theme} 
+          placeholder={"..."}
+          pageNumber={pageNumber} 
+          category={category}     
+        />
 
         {activeTab === 'camera' ? (
           <View style={styles.actionSection}>
@@ -159,11 +165,10 @@ const saveToLibrary = async () => {
               onChangeText={setQuote}
             />
             <View style={{ flexDirection: 'row', gap: 10 }}>
-              <TextInput style={[styles.input, { flex: 1 }]} placeholder="Martı Jonathon Livingston" placeholderTextColor="#666" value={bookTitle} onChangeText={setBookTitle} />
-              <TextInput style={[styles.input, { flex: 1 }]} placeholder="Richard Bach" placeholderTextColor="#666" value={author} onChangeText={setAuthor} />
+              <TextInput style={[styles.input, { flex: 1 }]} placeholder="Kitap Adı" placeholderTextColor="#666" value={bookTitle} onChangeText={setBookTitle} />
+              <TextInput style={[styles.input, { flex: 1 }]} placeholder="Yazar" placeholderTextColor="#666" value={author} onChangeText={setAuthor} />
             </View>
 
-            {/* Yeni Bölüm: Sayfa No ve Kategori */}
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <TextInput 
                 style={[styles.input, { flex: 1 }]} 
@@ -207,7 +212,25 @@ const saveToLibrary = async () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
-  tabContainer: { flexDirection: 'row', backgroundColor: '#E9ECEF', margin: 15, borderRadius: 12, padding: 4 },
+  // YENİ BAŞLIK STİLLERİ
+  headerSection: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 5,
+  },
+  headerTitle: { 
+    fontSize: 32, 
+    fontWeight: '900', 
+    color: '#1A1A1A',
+    letterSpacing: -0.5
+  },
+  headerSubTitle: {
+    fontSize: 14,
+    color: '#6C757D',
+    fontWeight: '500',
+    marginTop: 2
+  },
+  tabContainer: { flexDirection: 'row', backgroundColor: '#E9ECEF', marginHorizontal: 20, marginVertical: 10, borderRadius: 12, padding: 4 },
   tabButton: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
   activeTab: { backgroundColor: '#FFFFFF', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1 },
   tabText: { fontWeight: '600', color: '#6C757D' },

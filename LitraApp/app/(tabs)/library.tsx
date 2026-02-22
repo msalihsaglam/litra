@@ -20,7 +20,6 @@ export default function LibraryScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const isFocused = useIsFocused();
 
-  // --- DÜZENLEME STATE'LERİ ---
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<QuoteItem | null>(null);
 
@@ -51,36 +50,19 @@ export default function LibraryScreen() {
     return [...new Set(quotes.map(q => q.category).filter(Boolean))] as string[];
   }, [quotes]);
 
-  // --- DÜZENLEME FONKSİYONLARI ---
   const openEditModal = (item: QuoteItem) => {
     setEditingItem({ ...item });
     setIsEditModalVisible(true);
   };
 
-const saveEdit = async () => {
-  if (!editingItem) return;
-  
-  // 1. Mevcut listeyi kopyala ve sadece ilgili öğeyi güncelle
-  // Bu işlem eski etiketi genel listeden silmez, sadece BU alıntının etiketini değiştirir.
-  const updatedList = quotes.map(q => {
-    if (q.id === editingItem.id) {
-      return {
-        ...editingItem,
-        // Eğer kullanıcı etiketi boş bıraktıysa null veya boş string yapabiliriz
-        category: editingItem.category?.trim() || "" 
-      };
-    }
-    return q;
-  });
-
-  // 2. State ve LocalStorage güncelle
-  setQuotes(updatedList);
-  await AsyncStorage.setItem('litra_quotes', JSON.stringify(updatedList));
-  
-  // 3. Modalı kapat
-  setIsEditModalVisible(false);
-  Alert.alert("Güncellendi", "Değişiklikler kaydedildi.");
-};
+  const saveEdit = async () => {
+    if (!editingItem) return;
+    const updatedList = quotes.map(q => q.id === editingItem.id ? { ...editingItem, category: editingItem.category?.trim() || "" } : q);
+    setQuotes(updatedList);
+    await AsyncStorage.setItem('litra_quotes', JSON.stringify(updatedList));
+    setIsEditModalVisible(false);
+    Alert.alert("Güncellendi", "Değişiklikler kaydedildi.");
+  };
 
   const deleteQuote = (id: string) => {
     Alert.alert("Alıntıyı Sil", "Emin misiniz?", [
@@ -114,7 +96,9 @@ const saveEdit = async () => {
                 {item.pageNumber && <Text style={[styles.pageText, { color: isDarkTheme ? '#888' : '#AAA' }]}>S. {item.pageNumber}</Text>}
               </View>
             </View>
-            <TouchableOpacity onPress={() => deleteQuote(item.id)}><Text style={styles.deleteBtn}>🗑️</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => deleteQuote(item.id)} style={styles.deleteArea}>
+              <Text style={styles.deleteBtn}>🗑️</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </TouchableOpacity>
@@ -123,7 +107,10 @@ const saveEdit = async () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.headerTitle}>Kitaplığım</Text>
+      <View style={styles.headerSection}>
+        <Text style={styles.headerTitle}>Kitaplığım</Text>
+        <Text style={styles.headerSubTitle}>{quotes.length} adet kayıtlı alıntı</Text>
+      </View>
 
       <View style={styles.searchContainer}>
         <TextInput
@@ -161,71 +148,38 @@ const saveEdit = async () => {
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>{searchQuery || selectedCategory ? "Arama sonucu bulunamadı." : "Henüz bir alıntı eklemedin."}</Text>
+          </View>
+        }
       />
 
-      {/* --- DÜZENLEME MODALI --- */}
-<Modal visible={isEditModalVisible} animationType="slide" transparent={true}>
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.modalOverlay}
-        >
+      <Modal visible={isEditModalVisible} animationType="slide" transparent={true}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Alıntıyı Düzenle</Text>
-              <TouchableOpacity onPress={() => setIsEditModalVisible(false)}>
-                <Text style={styles.closeBtn}>Kapat</Text>
-              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setIsEditModalVisible(false)}><Text style={styles.closeBtn}>Kapat</Text></TouchableOpacity>
             </View>
-
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={styles.inputLabel}>Alıntı Metni</Text>
-              <TextInput
-                style={[styles.modalInput, { height: 120 }]}
-                multiline
-                value={editingItem?.quote}
-                onChangeText={(text) => setEditingItem(prev => prev ? {...prev, quote: text} : null)}
-              />
-
+              <TextInput style={[styles.modalInput, { height: 120 }]} multiline value={editingItem?.quote} onChangeText={(text) => setEditingItem(prev => prev ? {...prev, quote: text} : null)} />
               <Text style={styles.inputLabel}>Kitap Adı</Text>
-              <TextInput
-                style={styles.modalInput}
-                value={editingItem?.bookTitle}
-                onChangeText={(text) => setEditingItem(prev => prev ? {...prev, bookTitle: text} : null)}
-              />
-
+              <TextInput style={styles.modalInput} value={editingItem?.bookTitle} onChangeText={(text) => setEditingItem(prev => prev ? {...prev, bookTitle: text} : null)} />
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.inputLabel}>Yazar</Text>
-                  <TextInput
-                    style={styles.modalInput}
-                    value={editingItem?.author}
-                    onChangeText={(text) => setEditingItem(prev => prev ? {...prev, author: text} : null)}
-                  />
+                  <TextInput style={styles.modalInput} value={editingItem?.author} onChangeText={(text) => setEditingItem(prev => prev ? {...prev, author: text} : null)} />
                 </View>
                 <View style={{ width: 80 }}>
                   <Text style={styles.inputLabel}>S. No</Text>
-                  <TextInput
-                    style={styles.modalInput}
-                    keyboardType="numeric"
-                    value={editingItem?.pageNumber}
-                    onChangeText={(text) => setEditingItem(prev => prev ? {...prev, pageNumber: text} : null)}
-                  />
+                  <TextInput style={styles.modalInput} keyboardType="numeric" value={editingItem?.pageNumber} onChangeText={(text) => setEditingItem(prev => prev ? {...prev, pageNumber: text} : null)} />
                 </View>
               </View>
-
-              {/* --- YENİ: ETİKET / KATEGORİ DÜZENLEME --- */}
-              <Text style={styles.inputLabel}>Tür / Etiket (Örn: Roman, Felsefe)</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Kategori girin..."
-                value={editingItem?.category}
-                onChangeText={(text) => setEditingItem(prev => prev ? {...prev, category: text} : null)}
-              />
-
-              <TouchableOpacity style={styles.updateBtn} onPress={saveEdit}>
-                <Text style={styles.updateBtnText}>Değişiklikleri Kaydet</Text>
-              </TouchableOpacity>
-              
+              <Text style={styles.inputLabel}>Tür / Etiket</Text>
+              <TextInput style={styles.modalInput} placeholder="Kategori girin..." value={editingItem?.category} onChangeText={(text) => setEditingItem(prev => prev ? {...prev, category: text} : null)} />
+              <TouchableOpacity style={styles.updateBtn} onPress={saveEdit}><Text style={styles.updateBtnText}>Değişiklikleri Kaydet</Text></TouchableOpacity>
               <View style={{ height: 40 }} /> 
             </ScrollView>
           </View>
@@ -237,16 +191,16 @@ const saveEdit = async () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
-  headerTitle: { fontSize: 28, fontWeight: '800', paddingHorizontal: 20, paddingTop: 60, color: '#1A1A1A' },
-  
-  searchContainer: { paddingHorizontal: 20, marginVertical: 15 },
-  searchInput: { backgroundColor: '#FFF', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#EEE', fontSize: 14 },
+  headerSection: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 5 },
+  headerTitle: { fontSize: 32, fontWeight: '900', color: '#1A1A1A', letterSpacing: -0.5 },
+  headerSubTitle: { fontSize: 14, color: '#6C757D', fontWeight: '500', marginTop: 2 },
+  searchContainer: { paddingHorizontal: 20, marginTop: 15, marginBottom: 10 },
+  searchInput: { backgroundColor: '#FFF', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#EEE', fontSize: 14, color: '#333' },
   filterScroll: { paddingHorizontal: 20, paddingBottom: 10, gap: 8 },
   filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#EEE', borderWidth: 1, borderColor: '#DDD' },
   activeFilterChip: { backgroundColor: '#007AFF', borderColor: '#007AFF' },
   filterText: { fontSize: 13, color: '#666', fontWeight: '600' },
   activeFilterText: { color: '#FFF' },
-
   listContent: { padding: 15, paddingBottom: 100 },
   quoteCard: { padding: 20, borderRadius: 24, marginBottom: 15, elevation: 3, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 12, borderLeftWidth: 6 },
   classic: { backgroundColor: '#FDFCF8', borderLeftColor: '#E6E2D3' },
@@ -256,7 +210,6 @@ const styles = StyleSheet.create({
   midnight: { backgroundColor: '#0D1B2A', borderLeftColor: '#778DA9' },
   rose: { backgroundColor: '#FCE4EC', borderLeftColor: '#F06292' },
   ocean: { backgroundColor: '#E0F2F1', borderLeftColor: '#4DB6AC' },
-
   badge: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10, marginBottom: 12 },
   badgeText: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
   quoteText: { fontSize: 15, fontStyle: 'italic', lineHeight: 22, marginBottom: 18, fontWeight: '500' },
@@ -265,9 +218,10 @@ const styles = StyleSheet.create({
   accentLine: { width: 3, height: 28, marginRight: 10, borderRadius: 2 },
   bookInfo: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
   pageText: { fontSize: 10, fontWeight: '600', marginTop: 2 },
+  deleteArea: { padding: 8 },
   deleteBtn: { fontSize: 18, opacity: 0.6 },
-
-  // MODAL STİLLERİ
+  emptyState: { alignItems: 'center', marginTop: 50 },
+  emptyText: { color: '#ADB5BD' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 25, maxHeight: '85%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
