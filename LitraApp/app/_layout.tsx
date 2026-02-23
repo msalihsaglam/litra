@@ -1,32 +1,46 @@
 import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons'; // Expo ile hazır gelir
+import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
   return (
     <Tabs screenOptions={{ 
-      tabBarActiveTintColor: '#007AFF', // Aktif menü rengi (Apple Mavisi)
-      tabBarStyle: { height: 60, paddingBottom: 10 },
-      headerShown: true, // Sayfa başlıkları görünsün
+      tabBarActiveTintColor: '#007AFF', 
+      tabBarInactiveTintColor: '#8E8E93',
+      tabBarStyle: { 
+        height: 65, 
+        paddingBottom: 12,
+        backgroundColor: '#FFFFFF',
+        borderTopWidth: 1,
+        borderTopColor: '#E9ECEF',
+      },
+      headerShown: false, 
     }}>
+      {/* Name kısımlarını klasör yapına göre (tabs)/index şeklinde güncelledim */}
       <Tabs.Screen
-        name="(tabs)/index"
+        name="(tabs)/index" 
         options={{
           title: 'Oluştur',
-          tabBarIcon: ({ color }) => <Ionicons name="add-circle" size={28} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "add-circle" : "add-circle-outline"} size={28} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="(tabs)/library"
         options={{
           title: 'Kitaplığım',
-          tabBarIcon: ({ color }) => <Ionicons name="book" size={26} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "book" : "book-outline"} size={24} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="(tabs)/settings"
         options={{
           title: 'Ayarlar',
-          tabBarIcon: ({ color }) => <Ionicons name="settings" size={26} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "settings" : "settings-outline"} size={24} color={color} />
+          ),
         }}
       />
     </Tabs>
