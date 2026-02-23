@@ -52,7 +52,13 @@
             "backgroundColor": "#1A1A1B"
           }
         }
-      ]
+      ],
+      [
+    "expo-image-picker",
+    {
+      "photosPermission": "Litra'nın alıntıları kaydetmek için galerinize erişmesi gerekiyor."
+    }
+    ]
     ],
     "experiments": {
       "typedRoutes": true,

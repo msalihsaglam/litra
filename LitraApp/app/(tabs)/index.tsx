@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, SafeAreaView, TouchableOpacity, Text, TextInput, ScrollView, Alert, Dimensions, ActivityIndicator } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import QuoteCard from '../../components/QuoteCard';
+
+// ÖNEMLİ: Build aşamasında bu kütüphane devreye girecek. 
+// Eğer Expo Go'da hata verirse bu satırı ve takePhoto içindeki ImagePicker kısmını geçici olarak kapatabilirsin.
+import ImagePicker from 'react-native-image-crop-picker';
 
 const { width } = Dimensions.get('window');
 
@@ -65,28 +68,36 @@ export default function Index() {
     }
   };
 
-  const takePhoto = async () => {
-    const { granted } = await ImagePicker.requestCameraPermissionsAsync();
-    if (!granted) {
-      Alert.alert("İzin Gerekli", "Kamera erişimi onaylanmadı.");
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true, 
-      quality: 1, 
-      base64: true,
+  // --- SERBEST KIRPMA DESTEKLİ TARAMA ---
+  const takePhoto = () => {
+    ImagePicker.openCamera({
+      width: 1200,
+      height: 800,
+      cropping: true,
+      freeStyleCropEnabled: true, // Köşeleri serbestçe çekiştirme özelliği
+      mediaType: 'photo',
+      includeBase64: true,
+      cropperToolbarTitle: 'Alıntıyı Seç ve Kırp',
+      cropperActiveWidgetColor: '#007AFF',
+      cropperToolbarColor: '#FFFFFF',
+      cropperStatusBarColor: '#FFFFFF',
+      cropperCancelText: 'Vazgeç',
+      cropperChooseText: 'Onayla ve Tara',
+    }).then((image: any) => {
+      if (image && image.data) {
+        setLoading(true);
+        recognizeText(image.data);
+      }
+    }).catch(e => {
+      if (e.code !== 'E_PICKER_CANCELLED') {
+        console.log(e);
+      }
     });
-
-    if (!result.canceled) {
-      setLoading(true);
-      recognizeText(result.assets[0].base64!);
-    }
   };
 
   const saveToLibrary = async () => {
     if (!quote || quote.length < 5 || quote.includes("taramak için kamerayı açın")) {
-      Alert.alert("Uyarı", "Lütfen geçerli bir alıntı girin veya tarayın.");
+      Alert.alert("Uyarı", "Lütfen geçerli bir alıntı girin.");
       return;
     }
 
@@ -104,24 +115,20 @@ export default function Index() {
 
       const existingData = await AsyncStorage.getItem('litra_quotes');
       const currentList = existingData ? JSON.parse(existingData) : [];
-      const updatedList = [newEntry, ...currentList];
-      
-      await AsyncStorage.setItem('litra_quotes', JSON.stringify(updatedList));
+      await AsyncStorage.setItem('litra_quotes', JSON.stringify([newEntry, ...currentList]));
 
       setQuote("Kitaptan bir alıntı taramak için kamerayı açın.");
       setBookTitle("");
       setAuthor("");
       setPageNumber("");
       setCategory("");
-      setTheme("classic");
-      setActiveTab("camera");
 
       Alert.alert("Kaydedildi!", "Alıntın kütüphanene eklendi. ✨", [
         { text: "Tamam" },
         { text: "Kitaplığa Git", onPress: () => router.push('/library') }
       ]);
     } catch (e) {
-      Alert.alert("Hata", "Kaydedilirken teknik bir sorun oluştu.");
+      Alert.alert("Hata", "Kaydedilirken sorun oluştu.");
     }
   };
 
@@ -154,11 +161,10 @@ export default function Index() {
 
         {activeTab === 'camera' ? (
           <View style={styles.actionSection}>
-            {/* --- YENİ TALİMAT KUTUSU --- */}
             <View style={styles.instructionBox}>
               <Text style={styles.instructionEmoji}>📖</Text>
               <Text style={styles.instructionText}>
-                Fotoğrafı çektikten sonra sadece alıntıyı içerecek şekilde <Text style={{fontWeight: 'bold'}}>kırpın.</Text>
+                Fotoğrafı çektikten sonra köşelerden tutarak sadece alıntıyı <Text style={{fontWeight: 'bold'}}>kırpın.</Text>
               </Text>
             </View>
 
@@ -179,24 +185,6 @@ export default function Index() {
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <TextInput style={[styles.input, { flex: 1 }]} placeholder="Kitap Adı" placeholderTextColor="#666" value={bookTitle} onChangeText={setBookTitle} />
               <TextInput style={[styles.input, { flex: 1 }]} placeholder="Yazar" placeholderTextColor="#666" value={author} onChangeText={setAuthor} />
-            </View>
-
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <TextInput 
-                style={[styles.input, { flex: 1 }]} 
-                placeholder="Sayfa No" 
-                placeholderTextColor="#666" 
-                keyboardType="numeric"
-                value={pageNumber} 
-                onChangeText={setPageNumber} 
-              />
-              <TextInput 
-                style={[styles.input, { flex: 2 }]} 
-                placeholder="Tür (Örn: Roman)" 
-                placeholderTextColor="#666" 
-                value={category} 
-                onChangeText={setCategory} 
-              />
             </View>
           </View>
         )}
@@ -229,13 +217,11 @@ const styles = StyleSheet.create({
   headerSubTitle: { fontSize: 14, color: '#6C757D', fontWeight: '500', marginTop: 2 },
   tabContainer: { flexDirection: 'row', backgroundColor: '#E9ECEF', marginHorizontal: 20, marginVertical: 10, borderRadius: 12, padding: 4 },
   tabButton: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
-  activeTab: { backgroundColor: '#FFFFFF', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1 },
+  activeTab: { backgroundColor: '#FFFFFF', elevation: 2, shadowColor: '#000', shadowOpacity: 0.1 },
   tabText: { fontWeight: '600', color: '#6C757D' },
   activeTabText: { color: '#007AFF' },
   contentWrapper: { alignItems: 'center', paddingBottom: 60 },
   actionSection: { width: '90%', alignItems: 'center', marginTop: 30 },
-  
-  // YENİ TALİMAT KUTUSU STİLLERİ
   instructionBox: {
     backgroundColor: '#E7F3FF',
     padding: 20,
@@ -249,21 +235,15 @@ const styles = StyleSheet.create({
   },
   instructionEmoji: { fontSize: 24, marginRight: 15 },
   instructionText: { flex: 1, fontSize: 14, color: '#0056B3', lineHeight: 20 },
-  
   cameraMainButton: { 
     backgroundColor: '#007AFF', 
     width: '100%', 
     padding: 18, 
     borderRadius: 16, 
     alignItems: 'center',
-    shadowColor: "#007AFF",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
     elevation: 5
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  infoText: { color: '#6C757D', marginBottom: 15, textAlign: 'center', fontSize: 13 },
   manualSection: { width: '90%', marginTop: 10 },
   input: { backgroundColor: '#FFF', borderRadius: 12, padding: 15, marginBottom: 10, borderWidth: 1, borderColor: '#DEE2E6', color: '#1A1A1A' },
   saveLibraryButton: { backgroundColor: '#FF9500', width: '90%', padding: 18, borderRadius: 16, alignItems: 'center', marginTop: 15, elevation: 3 },
@@ -278,19 +258,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FFF',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
     elevation: 2,
-    overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.05)',
   },
   activeTheme: { 
     borderWidth: 2,
-    borderColor: '#007bffce',
-    transform: [{ scale: 1.05 }] 
+    borderColor: '#007bffce'
   },
   checkDot: { 
     width: 6, 
