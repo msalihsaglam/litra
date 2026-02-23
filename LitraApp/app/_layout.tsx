@@ -15,7 +15,6 @@ export default function TabLayout() {
       },
       headerShown: false, 
     }}>
-      {/* Name kısımlarını klasör yapına göre (tabs)/index şeklinde güncelledim */}
       <Tabs.Screen
         name="(tabs)/index" 
         options={{
@@ -25,6 +24,7 @@ export default function TabLayout() {
           ),
         }}
       />
+      
       <Tabs.Screen
         name="(tabs)/library"
         options={{
@@ -34,6 +34,18 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* --- YENİ ANALİZ SEKMESİ --- */}
+      <Tabs.Screen
+        name="(tabs)/stats" 
+        options={{
+          title: 'Analiz',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "bar-chart" : "bar-chart-outline"} size={22} color={color} />
+          ),
+        }}
+      />
+
       <Tabs.Screen
         name="(tabs)/settings"
         options={{
