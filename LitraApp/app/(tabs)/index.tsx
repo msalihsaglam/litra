@@ -35,6 +35,8 @@ export default function Index() {
       formData.append('language', 'tur');
       formData.append('apikey', 'K81155988288957');
       formData.append('isOverlayRequired', 'false');
+      formData.append('detectOrientation', 'true'); 
+      formData.append('scale', 'true'); 
 
       const response = await fetch('https://api.ocr.space/parse/image', {
         method: 'POST',
@@ -46,13 +48,18 @@ export default function Index() {
       if (result.ParsedResults && result.ParsedResults.length > 0) {
         let detectedText = result.ParsedResults[0].ParsedText;
         const cleanText = detectedText.replace(/\r?\n|\r/g, " ").trim();
-        setQuote(cleanText);
-        Alert.alert("Başarılı", "Metin başarıyla tarandı.");
+        
+        if (cleanText.length < 2) {
+          Alert.alert("Hata", "Net bir metin bulunamadı. Lütfen sadece cümleyi kırparak tekrar dene.");
+        } else {
+          setQuote(cleanText);
+          Alert.alert("Başarılı", "Metin başarıyla tarandı.");
+        }
       } else {
-        Alert.alert("Hata", "Görüntüdeki metin okunamadı.");
+        Alert.alert("Hata", "Görüntü okunamadı. Işığın iyi olduğundan emin ol.");
       }
     } catch (error) {
-      Alert.alert("Hata", "Bağlantı sorunu oluştu.");
+      Alert.alert("Hata", "Bağlantı sorunu.");
     } finally {
       setLoading(false);
     }
@@ -67,7 +74,7 @@ export default function Index() {
 
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true, 
-      quality: 0.8,
+      quality: 1, 
       base64: true,
     });
 
@@ -120,13 +127,11 @@ export default function Index() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Üst Başlık Bölümü */}
       <View style={styles.headerSection}>
         <Text style={styles.headerTitle}>Litra</Text>
         <Text style={styles.headerSubTitle}>Yeni alıntı ekle veya tara</Text>
       </View>
 
-      {/* Sekme Seçici */}
       <View style={styles.tabContainer}>
         <TouchableOpacity style={[styles.tabButton, activeTab === 'camera' && styles.activeTab]} onPress={() => setActiveTab('camera')}>
           <Text style={[styles.tabText, activeTab === 'camera' && styles.activeTabText]}>📷 Fotoğraf Çek</Text>
@@ -149,9 +154,16 @@ export default function Index() {
 
         {activeTab === 'camera' ? (
           <View style={styles.actionSection}>
-            <Text style={styles.infoText}>Kitap sayfasındaki cümleyi tara, Litra karta dönüştürsün.</Text>
+            {/* --- YENİ TALİMAT KUTUSU --- */}
+            <View style={styles.instructionBox}>
+              <Text style={styles.instructionEmoji}>📖</Text>
+              <Text style={styles.instructionText}>
+                Fotoğrafı çektikten sonra sadece alıntıyı içerecek şekilde <Text style={{fontWeight: 'bold'}}>kırpın.</Text>
+              </Text>
+            </View>
+
             <TouchableOpacity style={styles.cameraMainButton} onPress={takePhoto} disabled={loading}>
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Taramayı Başlat</Text>}
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>📷 Taramayı Başlat</Text>}
             </TouchableOpacity>
           </View>
         ) : (
@@ -212,32 +224,44 @@ export default function Index() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
-  // YENİ BAŞLIK STİLLERİ
-  headerSection: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 5,
-  },
-  headerTitle: { 
-    fontSize: 32, 
-    fontWeight: '900', 
-    color: '#1A1A1A',
-    letterSpacing: -0.5
-  },
-  headerSubTitle: {
-    fontSize: 14,
-    color: '#6C757D',
-    fontWeight: '500',
-    marginTop: 2
-  },
+  headerSection: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 5 },
+  headerTitle: { fontSize: 32, fontWeight: '900', color: '#1A1A1A', letterSpacing: -0.5 },
+  headerSubTitle: { fontSize: 14, color: '#6C757D', fontWeight: '500', marginTop: 2 },
   tabContainer: { flexDirection: 'row', backgroundColor: '#E9ECEF', marginHorizontal: 20, marginVertical: 10, borderRadius: 12, padding: 4 },
   tabButton: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
   activeTab: { backgroundColor: '#FFFFFF', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1 },
   tabText: { fontWeight: '600', color: '#6C757D' },
   activeTabText: { color: '#007AFF' },
   contentWrapper: { alignItems: 'center', paddingBottom: 60 },
-  actionSection: { width: '90%', alignItems: 'center', marginTop: 10 },
-  cameraMainButton: { backgroundColor: '#007AFF', width: '100%', padding: 18, borderRadius: 16, alignItems: 'center' },
+  actionSection: { width: '90%', alignItems: 'center', marginTop: 30 },
+  
+  // YENİ TALİMAT KUTUSU STİLLERİ
+  instructionBox: {
+    backgroundColor: '#E7F3FF',
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 25,
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#B3D7FF'
+  },
+  instructionEmoji: { fontSize: 24, marginRight: 15 },
+  instructionText: { flex: 1, fontSize: 14, color: '#0056B3', lineHeight: 20 },
+  
+  cameraMainButton: { 
+    backgroundColor: '#007AFF', 
+    width: '100%', 
+    padding: 18, 
+    borderRadius: 16, 
+    alignItems: 'center',
+    shadowColor: "#007AFF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5
+  },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   infoText: { color: '#6C757D', marginBottom: 15, textAlign: 'center', fontSize: 13 },
   manualSection: { width: '90%', marginTop: 10 },
