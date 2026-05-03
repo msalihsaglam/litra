@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, SafeAreaView, TouchableOpacity, Text, TextInput, ScrollView, Alert, Dimensions, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, SafeAreaView, TouchableOpacity, Text, TextInput, ScrollView, Alert, Dimensions, ActivityIndicator, Modal, FlatList } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useIsFocused } from '@react-navigation/native';
 import QuoteCard from '../../components/QuoteCard';
+import ImagePicker from 'react-native-image-crop-picker'; // KRİTİK: TEKRAR AKTİF
 
-// ÖNEMLİ: Build aşamasında bu kütüphane devreye girecek. 
-// Eğer Expo Go'da hata verirse bu satırı ve takePhoto içindeki ImagePicker kısmını geçici olarak kapatabilirsin.
-import ImagePicker from 'react-native-image-crop-picker';
-
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const THEME_LIST = [
   { id: 'classic', color: '#FDFCF8', label: 'Klasik' },
@@ -22,6 +21,7 @@ const THEME_LIST = [
 
 export default function Index() {
   const router = useRouter();
+  const isFocused = useIsFocused();
   const [activeTab, setActiveTab] = useState('camera'); 
   const [quote, setQuote] = useState("Rakamlar sınırları belirler; iyinin, mükemmelin sınırları yoktur.");
   const [bookTitle, setBookTitle] = useState("");
@@ -30,6 +30,36 @@ export default function Index() {
   const [category, setCategory] = useState("");     
   const [theme, setTheme] = useState('classic');
   const [loading, setLoading] = useState(false);
+
+  // --- KİTAP SEÇİCİ STATE'LERİ ---
+  const [bookModalVisible, setBookModalVisible] = useState(false);
+  const [recentBooks, setRecentBooks] = useState<{title: string, author: string}[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    if (isFocused) loadRecentBooks();
+  }, [isFocused]);
+
+  const loadRecentBooks = async () => {
+    try {
+      const data = await AsyncStorage.getItem('litra_quotes');
+      if (data) {
+        const quotes = JSON.parse(data);
+        const uniqueMap = new Map();
+        quotes.forEach((q: any) => {
+          if (q.bookTitle && !uniqueMap.has(q.bookTitle.toLowerCase())) {
+            uniqueMap.set(q.bookTitle.toLowerCase(), { title: q.bookTitle, author: q.author });
+          }
+        });
+        setRecentBooks(Array.from(uniqueMap.values()));
+      }
+    } catch (e) { console.log(e); }
+  };
+
+  const filteredBooks = recentBooks.filter(book => 
+    book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    book.author.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const recognizeText = async (base64Image: string) => {
     try {
@@ -47,19 +77,10 @@ export default function Index() {
       });
 
       const result = await response.json();
-      
       if (result.ParsedResults && result.ParsedResults.length > 0) {
         let detectedText = result.ParsedResults[0].ParsedText;
         const cleanText = detectedText.replace(/\r?\n|\r/g, " ").trim();
-        
-        if (cleanText.length < 2) {
-          Alert.alert("Hata", "Net bir metin bulunamadı. Lütfen sadece cümleyi kırparak tekrar dene.");
-        } else {
-          setQuote(cleanText);
-          Alert.alert("Başarılı", "Metin başarıyla tarandı.");
-        }
-      } else {
-        Alert.alert("Hata", "Görüntü okunamadı. Işığın iyi olduğundan emin ol.");
+        setQuote(cleanText);
       }
     } catch (error) {
       Alert.alert("Hata", "Bağlantı sorunu.");
@@ -68,13 +89,12 @@ export default function Index() {
     }
   };
 
-  // --- SERBEST KIRPMA DESTEKLİ TARAMA ---
   const takePhoto = () => {
     ImagePicker.openCamera({
       width: 1200,
       height: 800,
       cropping: true,
-      freeStyleCropEnabled: true, // Köşeleri serbestçe çekiştirme özelliği
+      freeStyleCropEnabled: true,
       mediaType: 'photo',
       includeBase64: true,
       cropperToolbarTitle: 'Alıntıyı Seç ve Kırp',
@@ -89,18 +109,12 @@ export default function Index() {
         recognizeText(image.data);
       }
     }).catch(e => {
-      if (e.code !== 'E_PICKER_CANCELLED') {
-        console.log(e);
-      }
+      if (e.code !== 'E_PICKER_CANCELLED') console.log(e);
     });
   };
 
   const saveToLibrary = async () => {
-    if (!quote || quote.length < 5 || quote.includes("taramak için kamerayı açın")) {
-      Alert.alert("Uyarı", "Lütfen geçerli bir alıntı girin.");
-      return;
-    }
-
+    if (!quote || quote.length < 5) return;
     try {
       const newEntry = {
         id: Date.now().toString(),
@@ -112,24 +126,18 @@ export default function Index() {
         theme,
         date: new Date().toLocaleDateString('tr-TR'),
       };
-
-      const existingData = await AsyncStorage.getItem('litra_quotes');
-      const currentList = existingData ? JSON.parse(existingData) : [];
-      await AsyncStorage.setItem('litra_quotes', JSON.stringify([newEntry, ...currentList]));
-
+      const data = await AsyncStorage.getItem('litra_quotes');
+      const list = data ? JSON.parse(data) : [];
+      await AsyncStorage.setItem('litra_quotes', JSON.stringify([newEntry, ...list]));
+      
       setQuote("Kitaptan bir alıntı taramak için kamerayı açın.");
       setBookTitle("");
       setAuthor("");
-      setPageNumber("");
-      setCategory("");
-
-      Alert.alert("Kaydedildi!", "Alıntın kütüphanene eklendi. ✨", [
+      Alert.alert("Kaydedildi!", "✨", [
         { text: "Tamam" },
         { text: "Kitaplığa Git", onPress: () => router.push('/library') }
       ]);
-    } catch (e) {
-      Alert.alert("Hata", "Kaydedilirken sorun oluştu.");
-    }
+    } catch (e) { Alert.alert("Hata", "Sorun oluştu."); }
   };
 
   return (
@@ -151,49 +159,43 @@ export default function Index() {
       <ScrollView contentContainerStyle={styles.contentWrapper} showsVerticalScrollIndicator={false}>
         <QuoteCard 
           quote={loading ? "Metin taranıyor..." : quote} 
-          bookTitle={bookTitle}
-          author={author}
-          theme={theme} 
-          placeholder={"..."}
-          pageNumber={pageNumber} 
-          category={category}     
+          bookTitle={bookTitle} author={author} theme={theme} 
+          pageNumber={pageNumber} category={category} 
         />
 
-        {activeTab === 'camera' ? (
-          <View style={styles.actionSection}>
-            <View style={styles.instructionBox}>
-              <Text style={styles.instructionEmoji}>📖</Text>
-              <Text style={styles.instructionText}>
-                Fotoğrafı çektikten sonra köşelerden tutarak sadece alıntıyı <Text style={{fontWeight: 'bold'}}>kırpın.</Text>
-              </Text>
-            </View>
-
-            <TouchableOpacity style={styles.cameraMainButton} onPress={takePhoto} disabled={loading}>
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>📷 Taramayı Başlat</Text>}
+        <View style={styles.manualSection}>
+          {activeTab === 'manual' && (
+            <TextInput 
+              style={[styles.input, { height: 80 }]} multiline 
+              placeholder="Alıntıyı buraya yazın..." value={quote} onChangeText={setQuote}
+            />
+          )}
+          
+          <View style={styles.inputWithIcon}>
+            <TextInput 
+              style={[styles.input, { flex: 1, marginBottom: 0 }]} 
+              placeholder="Kitap Adı" value={bookTitle} onChangeText={setBookTitle} 
+            />
+            <TouchableOpacity 
+              style={styles.iconInsideInput} 
+              onPress={() => { setSearchQuery(""); setBookModalVisible(true); }}
+            >
+              <Ionicons name="library" size={20} color="#007AFF" />
             </TouchableOpacity>
           </View>
-        ) : (
-          <View style={styles.manualSection}>
-            <TextInput 
-              style={[styles.input, { height: 100 }]} 
-              multiline 
-              placeholder="Alıntıyı buraya yazın..."
-              placeholderTextColor="#666"
-              value={quote}
-              onChangeText={setQuote}
-            />
-            <View style={{ flexDirection: 'row', gap: 10 }}>
-              <TextInput style={[styles.input, { flex: 1 }]} placeholder="Kitap Adı" placeholderTextColor="#666" value={bookTitle} onChangeText={setBookTitle} />
-              <TextInput style={[styles.input, { flex: 1 }]} placeholder="Yazar" placeholderTextColor="#666" value={author} onChangeText={setAuthor} />
-            </View>
-          </View>
-        )}
 
-        {!loading && (
-          <TouchableOpacity style={styles.saveLibraryButton} onPress={saveToLibrary}>
-            <Text style={styles.saveButtonText}>📌 Kitaplığıma Kaydet</Text>
+          <TextInput style={styles.input} placeholder="Yazar" value={author} onChangeText={setAuthor} />
+        </View>
+
+        {activeTab === 'camera' && (
+          <TouchableOpacity style={styles.cameraMainButton} onPress={takePhoto} disabled={loading}>
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>📷 Taramayı Başlat</Text>}
           </TouchableOpacity>
         )}
+
+        <TouchableOpacity style={styles.saveLibraryButton} onPress={saveToLibrary}>
+          <Text style={styles.saveButtonText}>📌 Kitaplığıma Kaydet</Text>
+        </TouchableOpacity>
 
         <View style={styles.themeContainer}>
           <Text style={styles.themeLabel}>GÖRÜNÜM STİLİ</Text>
@@ -206,6 +208,50 @@ export default function Index() {
           </ScrollView>
         </View>
       </ScrollView>
+
+      {/* --- KİTAP SEÇİCİ MODAL --- */}
+      <Modal visible={bookModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Kitap Seç</Text>
+              <TouchableOpacity onPress={() => setBookModalVisible(false)}>
+                <Ionicons name="close-circle" size={28} color="#ADB5BD" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.searchBarContainer}>
+              <Ionicons name="search" size={18} color="#ADB5BD" style={{marginLeft: 10}} />
+              <TextInput 
+                style={styles.searchBar} placeholder="Kitap veya yazar ara..." 
+                value={searchQuery} onChangeText={setSearchQuery}
+              />
+            </View>
+
+            <FlatList
+              data={filteredBooks}
+              keyExtractor={(item) => item.title}
+              renderItem={({ item }) => (
+                <TouchableOpacity 
+                  style={styles.bookSelectItem}
+                  onPress={() => {
+                    setBookTitle(item.title);
+                    setAuthor(item.author);
+                    setBookModalVisible(false);
+                  }}
+                >
+                  <View style={styles.bookIconCircle}><Ionicons name="book" size={16} color="#007AFF" /></View>
+                  <View>
+                    <Text style={styles.bookSelectTitle}>{item.title}</Text>
+                    <Text style={styles.bookSelectAuthor}>{item.author}</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={<Text style={styles.emptyText}>Henüz kayıtlı kitap yok.</Text>}
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -217,59 +263,33 @@ const styles = StyleSheet.create({
   headerSubTitle: { fontSize: 14, color: '#6C757D', fontWeight: '500', marginTop: 2 },
   tabContainer: { flexDirection: 'row', backgroundColor: '#E9ECEF', marginHorizontal: 20, marginVertical: 10, borderRadius: 12, padding: 4 },
   tabButton: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
-  activeTab: { backgroundColor: '#FFFFFF', elevation: 2, shadowColor: '#000', shadowOpacity: 0.1 },
+  activeTab: { backgroundColor: '#FFFFFF', elevation: 2 },
   tabText: { fontWeight: '600', color: '#6C757D' },
   activeTabText: { color: '#007AFF' },
   contentWrapper: { alignItems: 'center', paddingBottom: 60 },
-  actionSection: { width: '90%', alignItems: 'center', marginTop: 30 },
-  instructionBox: {
-    backgroundColor: '#E7F3FF',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 25,
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#B3D7FF'
-  },
-  instructionEmoji: { fontSize: 24, marginRight: 15 },
-  instructionText: { flex: 1, fontSize: 14, color: '#0056B3', lineHeight: 20 },
-  cameraMainButton: { 
-    backgroundColor: '#007AFF', 
-    width: '100%', 
-    padding: 18, 
-    borderRadius: 16, 
-    alignItems: 'center',
-    elevation: 5
-  },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   manualSection: { width: '90%', marginTop: 10 },
   input: { backgroundColor: '#FFF', borderRadius: 12, padding: 15, marginBottom: 10, borderWidth: 1, borderColor: '#DEE2E6', color: '#1A1A1A' },
-  saveLibraryButton: { backgroundColor: '#FF9500', width: '90%', padding: 18, borderRadius: 16, alignItems: 'center', marginTop: 15, elevation: 3 },
+  inputWithIcon: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  iconInsideInput: { position: 'absolute', right: 15, padding: 5 },
+  cameraMainButton: { backgroundColor: '#007AFF', width: '90%', padding: 18, borderRadius: 16, alignItems: 'center', marginTop: 10 },
+  saveLibraryButton: { backgroundColor: '#FF9500', width: '90%', padding: 18, borderRadius: 16, alignItems: 'center', marginTop: 15 },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   saveButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   themeContainer: { marginTop: 30, width: '100%' },
-  themeLabel: { fontSize: 10, fontWeight: 'bold', color: '#ADB5BD', letterSpacing: 1.5, marginBottom: 5, textAlign: 'center' },
+  themeLabel: { fontSize: 10, fontWeight: 'bold', color: '#ADB5BD', textAlign: 'center' },
   themeScrollContent: { paddingHorizontal: 20, paddingVertical: 10, gap: 15 },
-  themeButton: { 
-    width: 44, 
-    height: 44, 
-    borderRadius: 22, 
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-  },
-  activeTheme: { 
-    borderWidth: 2,
-    borderColor: '#007bffce'
-  },
-  checkDot: { 
-    width: 6, 
-    height: 6, 
-    borderRadius: 3, 
-    backgroundColor: '#007bffce' 
-  }
+  themeButton: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF', elevation: 2 },
+  activeTheme: { borderWidth: 2, borderColor: '#007bffce' },
+  checkDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#007bffce' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 30, borderTopRightRadius: 30, height: height * 0.7, padding: 25 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 20, fontWeight: '800' },
+  searchBarContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F3F5', borderRadius: 12, marginBottom: 20 },
+  searchBar: { flex: 1, padding: 12, fontSize: 14 },
+  bookSelectItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#F8F9FA' },
+  bookIconCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#E7F3FF', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  bookSelectTitle: { fontSize: 15, fontWeight: '700' },
+  bookSelectAuthor: { fontSize: 13, color: '#6C757D' },
+  emptyText: { textAlign: 'center', color: '#ADB5BD', marginTop: 50 }
 });
