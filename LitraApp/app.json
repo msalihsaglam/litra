@@ -17,7 +17,8 @@
       },
       "bundleIdentifier": "com.mssaglam.LitraApp",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Litra, kitap sayfalarındaki alıntıları taramak ve metne dönüştürmek için kameranızı kullanır. Örneğin, bir kitabın fotoğrafını çekerek alıntıyı dijital kütüphanenize anında ekleyebilirsiniz."
       }
     },
     "android": {
@@ -54,11 +55,12 @@
         }
       ],
       [
-    "expo-image-picker",
-    {
-      "photosPermission": "Litra'nın alıntıları kaydetmek için galerinize erişmesi gerekiyor."
-    }
-    ]
+        "expo-image-picker",
+        {
+          "photosPermission": "Litra, seçtiğiniz kitap sayfası fotoğraflarından metin ayıklamak ve galerinizdeki alıntıları işlemek için fotoğraf erişimi ister.",
+          "cameraPermission": "Litra, kitap sayfalarını doğrudan tarayabilmeniz ve alıntıları metne dönüştürebilmeniz için kamera erişimi ister."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
