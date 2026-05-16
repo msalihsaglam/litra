@@ -5,7 +5,17 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
 import QuoteCard from '../../components/QuoteCard';
-import ImagePicker from 'react-native-image-crop-picker'; // KRİTİK: TEKRAR AKTİF
+import * as ExpoImagePicker from 'expo-image-picker';
+
+// Dinamik import: Normal build'de react-native-image-crop-picker kullan, Expo Go'da fallback
+let RNImageCropPicker: any = null;
+try {
+  RNImageCropPicker = require('react-native-image-crop-picker');
+} catch (e) {
+  // Expo Go ortamında modül mevcut değil
+}
+
+const USE_NATIVE_PICKER = RNImageCropPicker !== null;
 
 const { width, height } = Dimensions.get('window');
 
@@ -89,28 +99,54 @@ export default function Index() {
     }
   };
 
-  const takePhoto = () => {
-    ImagePicker.openCamera({
-      width: 1200,
-      height: 800,
-      cropping: true,
-      freeStyleCropEnabled: true,
-      mediaType: 'photo',
-      includeBase64: true,
-      cropperToolbarTitle: 'Alıntıyı Seç ve Kırp',
-      cropperActiveWidgetColor: '#007AFF',
-      cropperToolbarColor: '#FFFFFF',
-      cropperStatusBarColor: '#FFFFFF',
-      cropperCancelText: 'Vazgeç',
-      cropperChooseText: 'Onayla ve Tara',
-    }).then((image: any) => {
-      if (image && image.data) {
-        setLoading(true);
-        recognizeText(image.data);
+  const takePhoto = async () => {
+    try {
+      if (USE_NATIVE_PICKER && RNImageCropPicker) {
+        // Normal build: crop özelliğiyle native picker kullan
+        RNImageCropPicker.openCamera({
+          width: 1200,
+          height: 800,
+          cropping: true,
+          freeStyleCropEnabled: true,
+          mediaType: 'photo',
+          includeBase64: true,
+          cropperToolbarTitle: 'Alıntıyı Seç ve Kırp',
+          cropperActiveWidgetColor: '#007AFF',
+          cropperToolbarColor: '#FFFFFF',
+          cropperStatusBarColor: '#FFFFFF',
+          cropperCancelText: 'Vazgeç',
+          cropperChooseText: 'Onayla ve Tara',
+        }).then((image: any) => {
+          if (image && image.data) {
+            setLoading(true);
+            recognizeText(image.data);
+          }
+        }).catch(e => {
+          if (e.code !== 'E_PICKER_CANCELLED') console.log(e);
+        });
+      } else {
+        // Expo Go: expo-image-picker kullan
+        const permission = await ExpoImagePicker.requestCameraPermissionsAsync();
+        if (permission.status !== 'granted') {
+          Alert.alert('İzin Hatası', 'Kamera erişimi için izin gerekir.');
+          return;
+        }
+
+        const result = await ExpoImagePicker.launchCameraAsync({
+          mediaTypes: ['images'],
+          quality: 1,
+          base64: true,
+        });
+
+        if (!result.canceled && result.assets[0].base64) {
+          setLoading(true);
+          recognizeText(result.assets[0].base64);
+        }
       }
-    }).catch(e => {
-      if (e.code !== 'E_PICKER_CANCELLED') console.log(e);
-    });
+    } catch (e) {
+      console.log('Kamera hatası:', e);
+      Alert.alert('Hata', 'Kamera açılamadı.');
+    }
   };
 
   const saveToLibrary = async () => {
