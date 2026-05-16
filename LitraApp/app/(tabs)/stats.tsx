@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, Dimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
+import { useTheme } from '../../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
@@ -22,6 +23,7 @@ export default function StatsScreen() {
     topCategories: [],
   });
   const isFocused = useIsFocused();
+  const { colors } = useTheme();
 
   useEffect(() => {
     if (isFocused) loadStats();
@@ -143,16 +145,16 @@ export default function StatsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.title}>İstatistikler</Text>
-          <Text style={styles.subtitle}>Okuma yolculuğunun özeti</Text>
+        <View style={[styles.header, { backgroundColor: colors.cardBackground }]}>
+          <Text style={[styles.title, { color: colors.text }]}>İstatistikler</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Okuma yolculuğunun özeti</Text>
         </View>
 
         {/* Kitap İstatistikleri */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📚 Kitap İstatistikleri</Text>
+        <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>📚 Kitap İstatistikleri</Text>
           <View style={styles.statsGrid}>
             <View style={[styles.statCard, { backgroundColor: '#E3F2FD' }]}>
               <Text style={styles.cardVal}>{stats.totalBooks}</Text>

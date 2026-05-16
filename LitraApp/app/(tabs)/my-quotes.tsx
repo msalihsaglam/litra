@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, TextInput, S
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../../context/ThemeContext';
 
 interface QuoteItem {
   id: string;
@@ -20,6 +21,7 @@ export default function MyQuotesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const isFocused = useIsFocused();
+  const { colors } = useTheme();
 
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<QuoteItem | null>(null);
@@ -107,17 +109,17 @@ export default function MyQuotesScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerSection}>
-        <Text style={styles.headerTitle}>Alıntılarım</Text>
-        <Text style={styles.headerSubTitle}>{quotes.length} adet kayıtlı alıntı</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.headerSection, { backgroundColor: colors.cardBackground }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Alıntılarım</Text>
+        <Text style={[styles.headerSubTitle, { color: colors.textSecondary }]}>{quotes.length} adet kayıtlı alıntı</Text>
       </View>
 
-      <View style={styles.searchContainer}>
+      <View style={[styles.searchContainer, { backgroundColor: colors.cardBackground }]}>
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.borderColor }]}
           placeholder="Kitap, yazar veya metin ara..."
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.textSecondary}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -151,7 +153,7 @@ export default function MyQuotesScreen() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>{searchQuery || selectedCategory ? "Arama sonucu bulunamadı." : "Henüz bir alıntı eklemedin."}</Text>
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{searchQuery || selectedCategory ? "Arama sonucu bulunamadı." : "Henüz bir alıntı eklemedin."}</Text>
           </View>
         }
       />

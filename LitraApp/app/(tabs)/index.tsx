@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
 import QuoteCard from '../../components/QuoteCard';
 import * as ExpoImagePicker from 'expo-image-picker';
+import { useTheme } from '../../context/ThemeContext';
 
 // Dinamik import: Normal build'de react-native-image-crop-picker kullan, Expo Go'da fallback
 let RNImageCropPicker: any = null;
@@ -32,6 +33,7 @@ const THEME_LIST = [
 export default function Index() {
   const router = useRouter();
   const isFocused = useIsFocused();
+  const { colors } = useTheme();
   const [activeTab, setActiveTab] = useState('camera'); 
   const [quote, setQuote] = useState("Rakamlar sınırları belirler; iyinin, mükemmelin sınırları yoktur.");
   const [bookTitle, setBookTitle] = useState("");
@@ -179,13 +181,13 @@ export default function Index() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerSection}>
-        <Text style={styles.headerTitle}>Litra</Text>
-        <Text style={styles.headerSubTitle}>Yeni alıntı ekle veya tara</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.headerSection, { backgroundColor: colors.cardBackground }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Litra</Text>
+        <Text style={[styles.headerSubTitle, { color: colors.textSecondary }]}>Yeni alıntı ekle veya tara</Text>
       </View>
 
-      <View style={styles.tabContainer}>
+      <View style={[styles.tabContainer, { borderBottomColor: colors.borderColor }]}>
         <TouchableOpacity style={[styles.tabButton, activeTab === 'camera' && styles.activeTab]} onPress={() => setActiveTab('camera')}>
           <Text style={[styles.tabText, activeTab === 'camera' && styles.activeTabText]}>📷 Fotoğraf Çek</Text>
         </TouchableOpacity>
@@ -206,13 +208,18 @@ export default function Index() {
             <TextInput 
               style={[styles.input, { height: 80 }]} multiline 
               placeholder="Alıntıyı buraya yazın..." value={quote} onChangeText={setQuote}
+              placeholderTextColor={colors.textSecondary}
+              style={{ color: colors.text }}
             />
           )}
           
           <View style={styles.inputWithIcon}>
             <TextInput 
-              style={[styles.input, { flex: 1, marginBottom: 0 }]} 
-              placeholder="Kitap Adı" value={bookTitle} onChangeText={setBookTitle} 
+              style={[styles.input, { flex: 1, marginBottom: 0, backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.borderColor }]} 
+              placeholder="Kitap Adı" 
+              placeholderTextColor={colors.textSecondary}
+              value={bookTitle} 
+              onChangeText={setBookTitle} 
             />
             <TouchableOpacity 
               style={styles.iconInsideInput} 
@@ -222,8 +229,8 @@ export default function Index() {
             </TouchableOpacity>
           </View>
 
-          <TextInput style={styles.input} placeholder="Yazar" value={author} onChangeText={setAuthor} />
-          <TextInput style={styles.input} placeholder="Sayfa Numarası (Opsiyonel)" value={pageNumber} onChangeText={setPageNumber} keyboardType="numeric" />
+          <TextInput style={[styles.input, { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.borderColor }]} placeholder="Yazar" placeholderTextColor={colors.textSecondary} value={author} onChangeText={setAuthor} />
+          <TextInput style={[styles.input, { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.borderColor }]} placeholder="Sayfa Numarası (Opsiyonel)" placeholderTextColor={colors.textSecondary} value={pageNumber} onChangeText={setPageNumber} keyboardType="numeric" />
         </View>
 
         {activeTab === 'camera' && (
@@ -251,22 +258,25 @@ export default function Index() {
       {/* --- KİTAP SEÇİCİ MODAL --- */}
       <Modal visible={bookModalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
+          <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
+            <View style={[styles.modalHeader, { backgroundColor: colors.cardBackground }]}>
               <View>
-                <Text style={styles.modalTitle}>Kitap Seç</Text>
-                <Text style={styles.modalSubtitle}>Okuyorum Durumundaki Kitaplar</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Kitap Seç</Text>
+                <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>Okuyorum Durumundaki Kitaplar</Text>
               </View>
               <TouchableOpacity onPress={() => setBookModalVisible(false)}>
-                <Ionicons name="close-circle" size={28} color="#ADB5BD" />
+                <Ionicons name="close-circle" size={28} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.searchBarContainer}>
-              <Ionicons name="search" size={18} color="#ADB5BD" style={{marginLeft: 10}} />
+            <View style={[styles.searchBarContainer, { backgroundColor: colors.inputBackground, borderColor: colors.borderColor }]}>
+              <Ionicons name="search" size={18} color={colors.textSecondary} style={{marginLeft: 10}} />
               <TextInput 
-                style={styles.searchBar} placeholder="Kitap veya yazar ara..." 
-                value={searchQuery} onChangeText={setSearchQuery}
+                style={[styles.searchBar, { color: colors.text }]} 
+                placeholder="Kitap veya yazar ara..." 
+                placeholderTextColor={colors.textSecondary}
+                value={searchQuery} 
+                onChangeText={setSearchQuery}
               />
             </View>
 
@@ -275,7 +285,7 @@ export default function Index() {
               keyExtractor={(item) => item.title}
               renderItem={({ item }) => (
                 <TouchableOpacity 
-                  style={styles.bookSelectItem}
+                  style={[styles.bookSelectItem, { backgroundColor: colors.cardBackground }]}
                   onPress={() => {
                     setBookTitle(item.title);
                     setAuthor(item.author);
@@ -284,12 +294,12 @@ export default function Index() {
                 >
                   <View style={styles.bookIconCircle}><Ionicons name="book" size={16} color="#007AFF" /></View>
                   <View>
-                    <Text style={styles.bookSelectTitle}>{item.title}</Text>
-                    <Text style={styles.bookSelectAuthor}>{item.author}</Text>
+                    <Text style={[styles.bookSelectTitle, { color: colors.text }]}>{item.title}</Text>
+                    <Text style={[styles.bookSelectAuthor, { color: colors.textSecondary }]}>{item.author}</Text>
                   </View>
                 </TouchableOpacity>
               )}
-              ListEmptyComponent={<Text style={styles.emptyText}>Kitaplığım'dan okuyorum durumundaki kitap ekleyin.</Text>}
+              ListEmptyComponent={<Text style={[styles.emptyText, { color: colors.textSecondary }]}>Kitaplığım'dan okuyorum durumundaki kitap ekleyin.</Text>}
             />
           </View>
         </View>

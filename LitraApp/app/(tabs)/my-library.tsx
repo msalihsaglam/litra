@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ExpoImagePicker from 'expo-image-picker';
+import { useTheme } from '../../context/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -40,7 +41,9 @@ export default function MyLibraryScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [showDeleteWarning, setShowDeleteWarning] = useState(true);
+  const [categoryColors, setCategoryColors] = useState<{[key: string]: string}>({});
   const isFocused = useIsFocused();
+  const { colors } = useTheme();
 
   // Form state
   const [formData, setFormData] = useState<{
@@ -63,6 +66,10 @@ export default function MyLibraryScreen() {
     try {
       const data = await AsyncStorage.getItem('litra_books');
       if (data) setBooks(JSON.parse(data));
+      
+      // Kategori renklerini yükle
+      const colorsData = await AsyncStorage.getItem('category_colors');
+      if (colorsData) setCategoryColors(JSON.parse(colorsData));
       
       // Silme uyarısı göster/gizle ayarını yükle
       const showWarning = await AsyncStorage.getItem('show_delete_warning');
@@ -281,7 +288,7 @@ export default function MyLibraryScreen() {
   };
 
   const renderBookCard = ({ item }: { item: Book }) => (
-    <View style={styles.bookCard}>
+    <View style={[styles.bookCard, { backgroundColor: colors.cardBackground }]}>
       {item.image ? (
         <Image
           source={{ uri: `data:image/jpeg;base64,${item.image}` }}
@@ -294,14 +301,26 @@ export default function MyLibraryScreen() {
       )}
 
       <View style={styles.bookInfo}>
-        <Text style={styles.bookTitle} numberOfLines={2}>{item.title}</Text>
-        <Text style={styles.bookAuthor} numberOfLines={1}>{item.author}</Text>
+        <Text style={[styles.bookTitle, { color: colors.text }]} numberOfLines={2}>{item.title}</Text>
+        <Text style={[styles.bookAuthor, { color: colors.textSecondary }]} numberOfLines={1}>{item.author}</Text>
         {item.category && (
-          <Text style={styles.bookCategory}>🏷️ {item.category}</Text>
+          <View style={[
+            styles.bookCategory, 
+            { 
+              backgroundColor: categoryColors[item.category] || '#F1F3F5',
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+              borderRadius: 12,
+              alignSelf: 'flex-start',
+              marginVertical: 4
+            }
+          ]}>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#333' }}>🏷️ {item.category}</Text>
+          </View>
         )}
-        <Text style={styles.bookDate}>Eklendi: {item.dateAdded}</Text>
+        <Text style={[styles.bookDate, { color: colors.textSecondary }]}>Eklendi: {item.dateAdded}</Text>
         {item.dateCompleted && (
-          <Text style={styles.bookDateCompleted}>✅ Okudum: {item.dateCompleted}</Text>
+          <Text style={[styles.bookDateCompleted, { color: colors.textSecondary }]}>✅ Okudum: {item.dateCompleted}</Text>
         )}
 
         <View style={styles.statusButtonsContainer}>
@@ -353,9 +372,9 @@ export default function MyLibraryScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Kitaplığım</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.cardBackground, borderBottomColor: colors.borderColor }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Kitaplığım</Text>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => setIsModalVisible(true)}
@@ -367,8 +386,8 @@ export default function MyLibraryScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Okuyorum */}
         {groupedBooks.okuyorum.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📖 Okuyorum</Text>
+          <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>📖 Okuyorum</Text>
             <FlatList
               data={groupedBooks.okuyorum}
               renderItem={renderBookCard}
@@ -380,8 +399,8 @@ export default function MyLibraryScreen() {
 
         {/* Okuyacağım */}
         {groupedBooks.okuyacağım.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📌 Okuyacağım</Text>
+          <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>📌 Okuyacağım</Text>
             <FlatList
               data={groupedBooks.okuyacağım}
               renderItem={renderBookCard}
@@ -393,8 +412,8 @@ export default function MyLibraryScreen() {
 
         {/* Okudum */}
         {groupedBooks.okudum.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>✅ Okudum</Text>
+          <View style={[styles.section, { backgroundColor: colors.cardBackground }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>✅ Okudum</Text>
             <FlatList
               data={groupedBooks.okudum}
               renderItem={renderBookCard}
@@ -424,9 +443,9 @@ export default function MyLibraryScreen() {
           style={styles.modalContainer}
         >
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
+            <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Yeni Kitap Ekle</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Yeni Kitap Ekle</Text>
                 <TouchableOpacity onPress={() => setIsModalVisible(false)}>
                   <Ionicons name="close" size={28} color="#007AFF" />
                 </TouchableOpacity>
@@ -449,9 +468,9 @@ export default function MyLibraryScreen() {
                       </TouchableOpacity>
                     </>
                   ) : (
-                    <View style={styles.imagePlaceholder}>
-                      <Ionicons name="book" size={60} color="#1A1A1A" />
-                      <Text style={styles.placeholderText}>Kitap Resmini Ekle (Opsiyonel)</Text>
+                    <View style={[styles.imagePlaceholder, { backgroundColor: colors.inputBackground, borderColor: colors.borderColor }]}>
+                      <Ionicons name="book" size={60} color={colors.textSecondary} />
+                      <Text style={[styles.placeholderText, { color: colors.textSecondary }]}>Kitap Resmini Ekle (Opsiyonel)</Text>
                     </View>
                   )}
                 </View>
@@ -476,23 +495,23 @@ export default function MyLibraryScreen() {
 
                 {/* Form Fields */}
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.borderColor }]}
                   placeholder="Kitap Adı"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={colors.textSecondary}
                   value={formData.title}
                   onChangeText={(text) => setFormData({ ...formData, title: text })}
                 />
 
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.borderColor }]}
                   placeholder="Yazar"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={colors.textSecondary}
                   value={formData.author}
                   onChangeText={(text) => setFormData({ ...formData, author: text })}
                 />
 
                 {/* Status Selection */}
-                <Text style={styles.statusLabel}>Durum</Text>
+                <Text style={[styles.statusLabel, { color: colors.text }]}>Durum</Text>
                 <View style={styles.statusSelectionContainer}>
                   {(['okuyacağım', 'okuyorum', 'okudum'] as const).map(status => (
                     <TouchableOpacity
