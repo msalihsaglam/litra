@@ -17,6 +17,7 @@ interface Book {
   author: string;
   image?: string; // base64 - optional
   status: 'okudum' | 'okuyacağım' | 'okuyorum';
+  category?: string; // etiket/kategori
   dateAdded: string;
   dateCompleted?: string;
 }
@@ -34,8 +35,10 @@ const USE_NATIVE_PICKER = RNImageCropPicker !== null;
 export default function MyLibraryScreen() {
   const [books, setBooks] = useState<Book[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [editingBook, setEditingBook] = useState<Book | null>(null);
   const isFocused = useIsFocused();
 
   // Form state
@@ -43,10 +46,12 @@ export default function MyLibraryScreen() {
     title: string;
     author: string;
     status: 'okudum' | 'okuyacağım' | 'okuyorum';
+    category: string;
   }>({
     title: '',
     author: '',
     status: 'okuyacağım',
+    category: '',
   });
 
   useEffect(() => {
@@ -167,6 +172,7 @@ export default function MyLibraryScreen() {
       author: formData.author,
       image: selectedImage || undefined,
       status: formData.status,
+      category: formData.category || undefined,
       dateAdded: new Date().toLocaleDateString('tr-TR'),
     };
 
@@ -174,7 +180,7 @@ export default function MyLibraryScreen() {
     await saveBooks(updatedBooks);
 
     // Reset form
-    setFormData({ title: '', author: '', status: 'okuyacağım' });
+    setFormData({ title: '', author: '', status: 'okuyacağım', category: '' });
     setSelectedImage(null);
     setIsModalVisible(false);
     Alert.alert('Başarılı', 'Kitap eklendi!');
@@ -213,6 +219,25 @@ export default function MyLibraryScreen() {
     ]);
   };
 
+  const openEditModal = (book: Book) => {
+    setEditingBook(book);
+    setIsEditModalVisible(true);
+  };
+
+  const saveEditedBook = async () => {
+    if (!editingBook || !editingBook.title || !editingBook.author) {
+      Alert.alert('Hata', 'Kitap adı ve yazar gerekli.');
+      return;
+    }
+
+    const updatedBooks = books.map(b =>
+      b.id === editingBook.id ? editingBook : b
+    );
+    await saveBooks(updatedBooks);
+    setIsEditModalVisible(false);
+    Alert.alert('Başarılı', 'Kitap güncellendi!');
+  };
+
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'okudum': return '✅ Okudum';
@@ -247,6 +272,9 @@ export default function MyLibraryScreen() {
       <View style={styles.bookInfo}>
         <Text style={styles.bookTitle} numberOfLines={2}>{item.title}</Text>
         <Text style={styles.bookAuthor} numberOfLines={1}>{item.author}</Text>
+        {item.category && (
+          <Text style={styles.bookCategory}>🏷️ {item.category}</Text>
+        )}
         <Text style={styles.bookDate}>Eklendi: {item.dateAdded}</Text>
         {item.dateCompleted && (
           <Text style={styles.bookDateCompleted}>✅ Okudum: {item.dateCompleted}</Text>
@@ -258,13 +286,17 @@ export default function MyLibraryScreen() {
               key={status}
               style={[
                 styles.statusButton,
-                item.status === status && { backgroundColor: getStatusColor(status) }
+                {
+                  backgroundColor: item.status === status ? getStatusColor(status) : '#F1F3F5',
+                  borderColor: getStatusColor(status),
+                  borderWidth: 1.5,
+                }
               ]}
               onPress={() => updateBookStatus(item.id, status)}
             >
               <Text style={[
                 styles.statusButtonText,
-                item.status === status && { color: '#FFF', fontWeight: 'bold' }
+                { color: item.status === status ? '#FFF' : getStatusColor(status) }
               ]}>
                 {getStatusLabel(status).split(' ')[0]}
               </Text>
@@ -272,12 +304,20 @@ export default function MyLibraryScreen() {
           ))}
         </View>
 
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => deleteBook(item.id)}
-        >
-          <Ionicons name="trash-outline" size={18} color="#FF3B30" />
-        </TouchableOpacity>
+        <View style={styles.actionButtonsContainer}>
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => openEditModal(item)}
+          >
+            <Ionicons name="pencil-outline" size={18} color="#007AFF" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => deleteBook(item.id)}
+          >
+            <Ionicons name="trash-outline" size={18} color="#FF3B30" />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -452,6 +492,16 @@ export default function MyLibraryScreen() {
                   ))}
                 </View>
 
+                {/* Category/Tag */}
+                <Text style={styles.statusLabel}>Etiket / Kategori (Opsiyonel)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Örn: Bilim Kurgu, Felsefe, Kişisel Gelişim..."
+                  placeholderTextColor="#999"
+                  value={formData.category}
+                  onChangeText={(text) => setFormData({ ...formData, category: text })}
+                />
+
                 {/* Add Button */}
                 <TouchableOpacity
                   style={styles.addBookButton}
@@ -463,6 +513,98 @@ export default function MyLibraryScreen() {
                   ) : (
                     <Text style={styles.addBookButtonText}>Kitabı Ekle</Text>
                   )}
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Edit Book Modal */}
+      <Modal
+        visible={isEditModalVisible}
+        animationType="slide"
+        transparent={true}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalContainer}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Kitabı Düzenle</Text>
+                <TouchableOpacity onPress={() => setIsEditModalVisible(false)}>
+                  <Ionicons name="close" size={28} color="#007AFF" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Kitap Adı"
+                  placeholderTextColor="#999"
+                  value={editingBook?.title}
+                  onChangeText={(text) => setEditingBook(prev => prev ? { ...prev, title: text } : null)}
+                />
+
+                <TextInput
+                  style={styles.input}
+                  placeholder="Yazar"
+                  placeholderTextColor="#999"
+                  value={editingBook?.author}
+                  onChangeText={(text) => setEditingBook(prev => prev ? { ...prev, author: text } : null)}
+                />
+
+                <Text style={styles.statusLabel}>Etiket / Kategori (Opsiyonel)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Örn: Bilim Kurgu, Felsefe..."
+                  placeholderTextColor="#999"
+                  value={editingBook?.category}
+                  onChangeText={(text) => setEditingBook(prev => prev ? { ...prev, category: text } : null)}
+                />
+
+                <Text style={styles.statusLabel}>Durum</Text>
+                <View style={styles.statusSelectionContainer}>
+                  {(['okuyacağım', 'okuyorum', 'okudum'] as const).map(status => (
+                    <TouchableOpacity
+                      key={status}
+                      style={[
+                        styles.statusSelectionButton,
+                        editingBook?.status === status && {
+                          backgroundColor: getStatusColor(status),
+                          borderColor: getStatusColor(status),
+                        }
+                      ]}
+                      onPress={() => {
+                        if (editingBook) {
+                          const updated = { ...editingBook, status };
+                          if (status === 'okudum' && !editingBook.dateCompleted) {
+                            updated.dateCompleted = new Date().toLocaleDateString('tr-TR');
+                          }
+                          if (status !== 'okudum') {
+                            updated.dateCompleted = undefined;
+                          }
+                          setEditingBook(updated);
+                        }
+                      }}
+                    >
+                      <Text style={[
+                        styles.statusSelectionText,
+                        editingBook?.status === status && { color: '#FFF', fontWeight: 'bold' }
+                      ]}>
+                        {getStatusLabel(status)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <TouchableOpacity
+                  style={styles.addBookButton}
+                  onPress={saveEditedBook}
+                >
+                  <Text style={styles.addBookButtonText}>Değişiklikleri Kaydet</Text>
                 </TouchableOpacity>
               </ScrollView>
             </View>
@@ -547,6 +689,12 @@ const styles = StyleSheet.create({
     color: '#6C757D',
     marginTop: 4,
   },
+  bookCategory: {
+    fontSize: 12,
+    color: '#FF9500',
+    marginTop: 4,
+    fontWeight: '600',
+  },
   bookDate: {
     fontSize: 11,
     color: '#ADB5BD',
@@ -560,25 +708,38 @@ const styles = StyleSheet.create({
   },
   statusButtonsContainer: {
     flexDirection: 'row',
-    gap: 6,
-    marginTop: 8,
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 8,
   },
   statusButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#DEE2E6',
-    backgroundColor: '#F8F9FA',
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statusButtonText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#6C757D',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'flex-end',
+    marginTop: 8,
+  },
+  editButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#E3F2FD',
   },
   deleteButton: {
-    marginTop: 8,
-    padding: 4,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#FFEBEE',
   },
   emptyState: {
     alignItems: 'center',

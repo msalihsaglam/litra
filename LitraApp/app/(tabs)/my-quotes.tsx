@@ -166,20 +166,26 @@ export default function MyQuotesScreen() {
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={styles.inputLabel}>Alıntı Metni</Text>
               <TextInput style={[styles.modalInput, { height: 120 }]} multiline value={editingItem?.quote} onChangeText={(text) => setEditingItem(prev => prev ? {...prev, quote: text} : null)} />
-              <Text style={styles.inputLabel}>Kitap Adı</Text>
-              <TextInput style={styles.modalInput} value={editingItem?.bookTitle} onChangeText={(text) => setEditingItem(prev => prev ? {...prev, bookTitle: text} : null)} />
+              
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>Yazar</Text>
-                  <TextInput style={styles.modalInput} value={editingItem?.author} onChangeText={(text) => setEditingItem(prev => prev ? {...prev, author: text} : null)} />
+                  <Text style={styles.inputLabel}>Kitap Adı</Text>
+                  <View style={[styles.modalInput, { justifyContent: 'center', paddingVertical: 15 }]}>
+                    <Text style={{ color: '#333', fontSize: 15 }}>{editingItem?.bookTitle}</Text>
+                  </View>
                 </View>
-                <View style={{ width: 80 }}>
-                  <Text style={styles.inputLabel}>S. No</Text>
-                  <TextInput style={styles.modalInput} keyboardType="numeric" value={editingItem?.pageNumber} onChangeText={(text) => setEditingItem(prev => prev ? {...prev, pageNumber: text} : null)} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.inputLabel}>Yazar</Text>
+                  <View style={[styles.modalInput, { justifyContent: 'center', paddingVertical: 15 }]}>
+                    <Text style={{ color: '#333', fontSize: 15 }}>{editingItem?.author}</Text>
+                  </View>
                 </View>
               </View>
-              <Text style={styles.inputLabel}>Tür / Etiket</Text>
-              <TextInput style={styles.modalInput} placeholder="Kategori girin..." value={editingItem?.category} onChangeText={(text) => setEditingItem(prev => prev ? {...prev, category: text} : null)} />
+
+              <View style={{ width: 100 }}>
+                <Text style={styles.inputLabel}>Sayfa No</Text>
+                <TextInput style={styles.modalInput} keyboardType="numeric" value={editingItem?.pageNumber} onChangeText={(text) => setEditingItem(prev => prev ? {...prev, pageNumber: text} : null)} />
+              </View>
               <TouchableOpacity style={styles.updateBtn} onPress={saveEdit}><Text style={styles.updateBtnText}>Değişiklikleri Kaydet</Text></TouchableOpacity>
               <View style={{ height: 40 }} /> 
             </ScrollView>

@@ -12,6 +12,8 @@ export default function StatsScreen() {
     completedBooks: 0,
     readingBooks: 0,
     plannedBooks: 0,
+    avgCompletionDays: 0,
+    avgReadingDays: 0,
     
     // Alıntı İstatistikleri
     totalQuotes: 0,
@@ -33,7 +35,10 @@ export default function StatsScreen() {
         total: 0,
         completed: 0,
         reading: 0,
-        planned: 0
+        planned: 0,
+        avgCompletionDays: 0,
+        avgReadingDays: 0,
+        topCategories: []
       };
       
       if (booksData) {
@@ -42,6 +47,46 @@ export default function StatsScreen() {
         bookStats.completed = books.filter((b: any) => b.status === 'okudum').length;
         bookStats.reading = books.filter((b: any) => b.status === 'okuyorum').length;
         bookStats.planned = books.filter((b: any) => b.status === 'okuyacağım').length;
+
+        // Ortalama bitirme süresi
+        const completedBooks = books.filter((b: any) => b.status === 'okudum' && b.dateCompleted);
+        if (completedBooks.length > 0) {
+          let totalDays = 0;
+          completedBooks.forEach((b: any) => {
+            const [addDay, addMonth, addYear] = b.dateAdded.split('.').map(Number);
+            const [compDay, compMonth, compYear] = b.dateCompleted.split('.').map(Number);
+            const addDate = new Date(addYear, addMonth - 1, addDay);
+            const compDate = new Date(compYear, compMonth - 1, compDay);
+            const daysDiff = Math.floor((compDate.getTime() - addDate.getTime()) / (1000 * 60 * 60 * 24));
+            totalDays += daysDiff;
+          });
+          bookStats.avgCompletionDays = Math.round(totalDays / completedBooks.length);
+        }
+
+        // Ortalama okuma süresi (okuyorum olanlar)
+        const readingBooks = books.filter((b: any) => b.status === 'okuyorum');
+        if (readingBooks.length > 0) {
+          let totalDays = 0;
+          readingBooks.forEach((b: any) => {
+            const [addDay, addMonth, addYear] = b.dateAdded.split('.').map(Number);
+            const addDate = new Date(addYear, addMonth - 1, addDay);
+            const today = new Date();
+            const daysDiff = Math.floor((today.getTime() - addDate.getTime()) / (1000 * 60 * 60 * 24));
+            totalDays += daysDiff;
+          });
+          bookStats.avgReadingDays = Math.round(totalDays / readingBooks.length);
+        }
+
+        // Etiketlere göre kitap sayısı
+        const catCounts = books.reduce((acc: any, b: any) => {
+          if (b.category) {
+            acc[b.category] = (acc[b.category] || 0) + 1;
+          }
+          return acc;
+        }, {});
+        bookStats.topCategories = Object.entries(catCounts)
+          .sort((a: any, b: any) => b[1] - a[1])
+          .slice(0, 3);
       }
 
       // Alıntı istatistikleri
@@ -94,6 +139,8 @@ export default function StatsScreen() {
         completedBooks: bookStats.completed,
         readingBooks: bookStats.reading,
         plannedBooks: bookStats.planned,
+        avgCompletionDays: bookStats.avgCompletionDays,
+        avgReadingDays: bookStats.avgReadingDays,
         totalQuotes: quoteStats.total,
         last10Days: quoteStats.last10Days,
         topBooks: quoteStats.topBooks,
@@ -132,6 +179,25 @@ export default function StatsScreen() {
               <Text style={styles.cardVal}>{stats.plannedBooks}</Text>
               <Text style={styles.cardLabel}>📌 Okuyacağım</Text>
             </View>
+          </View>
+        </View>
+
+        {/* Okuma Süresi İstatistikleri */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>⏱️ Okuma Süresi Analizi</Text>
+          <View style={styles.row}>
+            {stats.avgCompletionDays > 0 && (
+              <View style={[styles.statCard, { backgroundColor: '#E8F5E9' }]}>
+                <Text style={styles.cardVal}>{stats.avgCompletionDays}</Text>
+                <Text style={styles.cardLabel}>Ortalama Bitirme Süresi (Gün)</Text>
+              </View>
+            )}
+            {stats.avgReadingDays > 0 && (
+              <View style={[styles.statCard, { backgroundColor: '#FFF3E0' }]}>
+                <Text style={styles.cardVal}>{stats.avgReadingDays}</Text>
+                <Text style={styles.cardLabel}>Ortalama Okuma Süresi (Gün)</Text>
+              </View>
+            )}
           </View>
         </View>
 
