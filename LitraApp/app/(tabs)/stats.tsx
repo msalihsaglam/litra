@@ -48,7 +48,7 @@ export default function StatsScreen() {
         bookStats.reading = books.filter((b: any) => b.status === 'okuyorum').length;
         bookStats.planned = books.filter((b: any) => b.status === 'okuyacağım').length;
 
-        // Ortalama bitirme süresi
+        // Ortalama okuma süresi (tamamlanan kitaplar)
         const completedBooks = books.filter((b: any) => b.status === 'okudum' && b.dateCompleted);
         if (completedBooks.length > 0) {
           let totalDays = 0;
@@ -57,13 +57,14 @@ export default function StatsScreen() {
             const [compDay, compMonth, compYear] = b.dateCompleted.split('.').map(Number);
             const addDate = new Date(addYear, addMonth - 1, addDay);
             const compDate = new Date(compYear, compMonth - 1, compDay);
-            const daysDiff = Math.floor((compDate.getTime() - addDate.getTime()) / (1000 * 60 * 60 * 24));
+            // Gün farkı + 1 (aynı günü de saymak için)
+            const daysDiff = Math.ceil((compDate.getTime() - addDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
             totalDays += daysDiff;
           });
           bookStats.avgCompletionDays = Math.round(totalDays / completedBooks.length);
         }
 
-        // Ortalama okuma süresi (okuyorum olanlar)
+        // Ortalama okuma süresi (şu anda okuyorum olanlar - başlangıçtan bugüne kadar geçen gün)
         const readingBooks = books.filter((b: any) => b.status === 'okuyorum');
         if (readingBooks.length > 0) {
           let totalDays = 0;
@@ -71,7 +72,8 @@ export default function StatsScreen() {
             const [addDay, addMonth, addYear] = b.dateAdded.split('.').map(Number);
             const addDate = new Date(addYear, addMonth - 1, addDay);
             const today = new Date();
-            const daysDiff = Math.floor((today.getTime() - addDate.getTime()) / (1000 * 60 * 60 * 24));
+            today.setHours(0, 0, 0, 0); // Saati sıfırla
+            const daysDiff = Math.ceil((today.getTime() - addDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
             totalDays += daysDiff;
           });
           bookStats.avgReadingDays = Math.round(totalDays / readingBooks.length);
@@ -94,8 +96,7 @@ export default function StatsScreen() {
       let quoteStats = {
         total: 0,
         last10Days: 0,
-        topBooks: [],
-        topCategories: []
+        topBooks: []
       };
 
       if (quotesData) {
@@ -122,16 +123,6 @@ export default function StatsScreen() {
         quoteStats.topBooks = Object.entries(bookCounts)
           .sort((a: any, b: any) => b[1] - a[1])
           .slice(0, 3);
-
-        // En çok tercih edilen türler
-        const catCounts = quotes.reduce((acc: any, q: any) => {
-          const cat = q.category || "Genel";
-          acc[cat] = (acc[cat] || 0) + 1;
-          return acc;
-        }, {});
-        quoteStats.topCategories = Object.entries(catCounts)
-          .sort((a: any, b: any) => b[1] - a[1])
-          .slice(0, 3);
       }
 
       setStats({
@@ -144,7 +135,7 @@ export default function StatsScreen() {
         totalQuotes: quoteStats.total,
         last10Days: quoteStats.last10Days,
         topBooks: quoteStats.topBooks,
-        topCategories: quoteStats.topCategories,
+        topCategories: bookStats.topCategories,
       });
     } catch (e) { 
       console.error(e); 

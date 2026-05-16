@@ -169,6 +169,8 @@ export default function Index() {
       setQuote("Kitaptan bir alıntı taramak için kamerayı açın.");
       setBookTitle("");
       setAuthor("");
+      setPageNumber("");
+      setCategory("");
       Alert.alert("Kaydedildi!", "✨", [
         { text: "Tamam" },
         { text: "Alıntılarıma Git", onPress: () => router.push('/(tabs)/my-quotes') }
@@ -221,6 +223,7 @@ export default function Index() {
           </View>
 
           <TextInput style={styles.input} placeholder="Yazar" value={author} onChangeText={setAuthor} />
+          <TextInput style={styles.input} placeholder="Sayfa Numarası (Opsiyonel)" value={pageNumber} onChangeText={setPageNumber} keyboardType="numeric" />
         </View>
 
         {activeTab === 'camera' && (

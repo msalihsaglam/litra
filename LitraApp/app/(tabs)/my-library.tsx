@@ -39,6 +39,7 @@ export default function MyLibraryScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
+  const [showDeleteWarning, setShowDeleteWarning] = useState(true);
   const isFocused = useIsFocused();
 
   // Form state
@@ -62,6 +63,10 @@ export default function MyLibraryScreen() {
     try {
       const data = await AsyncStorage.getItem('litra_books');
       if (data) setBooks(JSON.parse(data));
+      
+      // Silme uyarısı göster/gizle ayarını yükle
+      const showWarning = await AsyncStorage.getItem('show_delete_warning');
+      setShowDeleteWarning(showWarning !== 'false');
     } catch (e) {
       console.error(e);
     }
@@ -206,17 +211,36 @@ export default function MyLibraryScreen() {
   };
 
   const deleteBook = (bookId: string) => {
-    Alert.alert('Sil', 'Bu kitabı silmek istediğinizden emin misiniz?', [
-      { text: 'İptal', style: 'cancel' },
-      {
-        text: 'Sil',
-        style: 'destructive',
-        onPress: async () => {
-          const updatedBooks = books.filter(b => b.id !== bookId);
-          await saveBooks(updatedBooks);
-        }
-      }
-    ]);
+    const handleDelete = async () => {
+      const updatedBooks = books.filter(b => b.id !== bookId);
+      await saveBooks(updatedBooks);
+    };
+
+    if (showDeleteWarning) {
+      Alert.alert(
+        'Kitabı Sil',
+        'Bu kitabı silmek istediğinizden emin misiniz?\n\n⚠️ Dikkkat: Bu kitapla ilgili tüm alıntılar ve analiz sonuçları da etkilenecektir.',
+        [
+          { text: 'İptal', style: 'cancel' },
+          {
+            text: 'Bir daha gösterme',
+            style: 'default',
+            onPress: async () => {
+              await AsyncStorage.setItem('show_delete_warning', 'false');
+              setShowDeleteWarning(false);
+              await handleDelete();
+            }
+          },
+          {
+            text: 'Sil',
+            style: 'destructive',
+            onPress: handleDelete
+          }
+        ]
+      );
+    } else {
+      handleDelete();
+    }
   };
 
   const openEditModal = (book: Book) => {
@@ -265,7 +289,7 @@ export default function MyLibraryScreen() {
         />
       ) : (
         <View style={[styles.bookImage, styles.placeholderImage]}>
-          <Ionicons name="book" size={50} color="#FFF" />
+          <Ionicons name="library" size={50} color="#FFF" />
         </View>
       )}
 
