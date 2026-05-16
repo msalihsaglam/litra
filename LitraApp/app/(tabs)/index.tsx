@@ -43,30 +43,30 @@ export default function Index() {
 
   // --- KİTAP SEÇİCİ STATE'LERİ ---
   const [bookModalVisible, setBookModalVisible] = useState(false);
-  const [recentBooks, setRecentBooks] = useState<{title: string, author: string}[]>([]);
+  const [activeBooks, setActiveBooks] = useState<{id: string, title: string, author: string}[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    if (isFocused) loadRecentBooks();
+    if (isFocused) loadActiveBooks();
   }, [isFocused]);
 
-  const loadRecentBooks = async () => {
+  const loadActiveBooks = async () => {
     try {
-      const data = await AsyncStorage.getItem('litra_quotes');
+      const data = await AsyncStorage.getItem('litra_books');
       if (data) {
-        const quotes = JSON.parse(data);
-        const uniqueMap = new Map();
-        quotes.forEach((q: any) => {
-          if (q.bookTitle && !uniqueMap.has(q.bookTitle.toLowerCase())) {
-            uniqueMap.set(q.bookTitle.toLowerCase(), { title: q.bookTitle, author: q.author });
-          }
-        });
-        setRecentBooks(Array.from(uniqueMap.values()));
+        const books = JSON.parse(data);
+        // Sadece okuyorum durumundaki kitapları filtrele
+        const reading = books.filter((b: any) => b.status === 'okuyorum');
+        setActiveBooks(reading.map((b: any) => ({ 
+          id: b.id, 
+          title: b.title, 
+          author: b.author 
+        })));
       }
     } catch (e) { console.log(e); }
   };
 
-  const filteredBooks = recentBooks.filter(book => 
+  const filteredBooks = activeBooks.filter(book => 
     book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     book.author.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -171,7 +171,7 @@ export default function Index() {
       setAuthor("");
       Alert.alert("Kaydedildi!", "✨", [
         { text: "Tamam" },
-        { text: "Kitaplığa Git", onPress: () => router.push('/library') }
+        { text: "Alıntılarıma Git", onPress: () => router.push('/(tabs)/my-quotes') }
       ]);
     } catch (e) { Alert.alert("Hata", "Sorun oluştu."); }
   };
@@ -230,7 +230,7 @@ export default function Index() {
         )}
 
         <TouchableOpacity style={styles.saveLibraryButton} onPress={saveToLibrary}>
-          <Text style={styles.saveButtonText}>📌 Kitaplığıma Kaydet</Text>
+          <Text style={styles.saveButtonText}>📌 Alıntılarıma Kaydet</Text>
         </TouchableOpacity>
 
         <View style={styles.themeContainer}>
@@ -250,7 +250,10 @@ export default function Index() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Kitap Seç</Text>
+              <View>
+                <Text style={styles.modalTitle}>Kitap Seç</Text>
+                <Text style={styles.modalSubtitle}>Okuyorum Durumundaki Kitaplar</Text>
+              </View>
               <TouchableOpacity onPress={() => setBookModalVisible(false)}>
                 <Ionicons name="close-circle" size={28} color="#ADB5BD" />
               </TouchableOpacity>
@@ -283,7 +286,7 @@ export default function Index() {
                   </View>
                 </TouchableOpacity>
               )}
-              ListEmptyComponent={<Text style={styles.emptyText}>Henüz kayıtlı kitap yok.</Text>}
+              ListEmptyComponent={<Text style={styles.emptyText}>Kitaplığım'dan okuyorum durumundaki kitap ekleyin.</Text>}
             />
           </View>
         </View>
@@ -319,8 +322,9 @@ const styles = StyleSheet.create({
   checkDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#007bffce' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 30, borderTopRightRadius: 30, height: height * 0.7, padding: 25 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
   modalTitle: { fontSize: 20, fontWeight: '800' },
+  modalSubtitle: { fontSize: 13, color: '#6C757D', marginTop: 4 },
   searchBarContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F3F5', borderRadius: 12, marginBottom: 20 },
   searchBar: { flex: 1, padding: 12, fontSize: 14 },
   bookSelectItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#F8F9FA' },

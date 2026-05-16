@@ -15,7 +15,7 @@ interface Book {
   id: string;
   title: string;
   author: string;
-  image: string; // base64
+  image?: string; // base64 - optional
   status: 'okudum' | 'okuyacağım' | 'okuyorum';
   dateAdded: string;
   dateCompleted?: string;
@@ -161,16 +161,11 @@ export default function MyLibraryScreen() {
       return;
     }
 
-    if (!selectedImage) {
-      Alert.alert('Hata', 'Lütfen resim seçin veya çekin.');
-      return;
-    }
-
     const newBook: Book = {
       id: Date.now().toString(),
       title: formData.title,
       author: formData.author,
-      image: selectedImage,
+      image: selectedImage || undefined,
       status: formData.status,
       dateAdded: new Date().toLocaleDateString('tr-TR'),
     };
@@ -186,9 +181,21 @@ export default function MyLibraryScreen() {
   };
 
   const updateBookStatus = async (bookId: string, newStatus: 'okudum' | 'okuyacağım' | 'okuyorum') => {
-    const updatedBooks = books.map(book =>
-      book.id === bookId ? { ...book, status: newStatus } : book
-    );
+    const updatedBooks = books.map(book => {
+      if (book.id === bookId) {
+        const updatedBook = { ...book, status: newStatus };
+        // Okudum'a geçilirse tarihi kaydet
+        if (newStatus === 'okudum' && !book.dateCompleted) {
+          updatedBook.dateCompleted = new Date().toLocaleDateString('tr-TR');
+        }
+        // Okudum'dan başka bir statüye geçilirse tarihi sil
+        if (newStatus !== 'okudum') {
+          updatedBook.dateCompleted = undefined;
+        }
+        return updatedBook;
+      }
+      return book;
+    });
     await saveBooks(updatedBooks);
   };
 
@@ -233,14 +240,17 @@ export default function MyLibraryScreen() {
         />
       ) : (
         <View style={[styles.bookImage, styles.placeholderImage]}>
-          <Ionicons name="image-outline" size={40} color="#CCC" />
+          <Ionicons name="book" size={50} color="#FFF" />
         </View>
       )}
 
       <View style={styles.bookInfo}>
         <Text style={styles.bookTitle} numberOfLines={2}>{item.title}</Text>
         <Text style={styles.bookAuthor} numberOfLines={1}>{item.author}</Text>
-        <Text style={styles.bookDate}>{item.dateAdded}</Text>
+        <Text style={styles.bookDate}>Eklendi: {item.dateAdded}</Text>
+        {item.dateCompleted && (
+          <Text style={styles.bookDateCompleted}>✅ Okudum: {item.dateCompleted}</Text>
+        )}
 
         <View style={styles.statusButtonsContainer}>
           {(['okuyacağım', 'okuyorum', 'okudum'] as const).map(status => (
@@ -376,8 +386,8 @@ export default function MyLibraryScreen() {
                     </>
                   ) : (
                     <View style={styles.imagePlaceholder}>
-                      <Ionicons name="image-outline" size={50} color="#007AFF" />
-                      <Text style={styles.placeholderText}>Kitap Resmini Ekle</Text>
+                      <Ionicons name="book" size={60} color="#1A1A1A" />
+                      <Text style={styles.placeholderText}>Kitap Resmini Ekle (Opsiyonel)</Text>
                     </View>
                   )}
                 </View>
@@ -521,7 +531,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   placeholderImage: {
-    backgroundColor: '#F1F3F5',
+    backgroundColor: '#1A1A1A',
   },
   bookInfo: {
     flex: 1,
@@ -541,6 +551,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#ADB5BD',
     marginTop: 4,
+  },
+  bookDateCompleted: {
+    fontSize: 11,
+    color: '#34C759',
+    marginTop: 3,
+    fontWeight: '600',
   },
   statusButtonsContainer: {
     flexDirection: 'row',
