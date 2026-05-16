@@ -26,9 +26,19 @@ export default function TabLayout() {
       />
       
       <Tabs.Screen
-        name="(tabs)/library"
+        name="(tabs)/my-library"
         options={{
           title: 'Kitaplığım',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "library" : "library-outline"} size={24} color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="(tabs)/my-quotes"
+        options={{
+          title: 'Alıntılarım',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "book" : "book-outline"} size={24} color={color} />
           ),

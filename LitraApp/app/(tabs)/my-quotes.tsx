@@ -14,7 +14,7 @@ interface QuoteItem {
   category?: string;
 }
 
-export default function LibraryScreen() {
+export default function MyQuotesScreen() {
   const [quotes, setQuotes] = useState<QuoteItem[]>([]);
   const [categoryColors, setCategoryColors] = useState<{[key: string]: string}>({});
   const [searchQuery, setSearchQuery] = useState('');
@@ -109,7 +109,7 @@ export default function LibraryScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerSection}>
-        <Text style={styles.headerTitle}>Kitaplığım</Text>
+        <Text style={styles.headerTitle}>Alıntılarım</Text>
         <Text style={styles.headerSubTitle}>{quotes.length} adet kayıtlı alıntı</Text>
       </View>
 
