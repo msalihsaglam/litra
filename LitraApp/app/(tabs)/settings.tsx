@@ -21,7 +21,7 @@ export default function SettingsScreen() {
   const isFocused = useIsFocused();
   const { isDarkMode, toggleDarkMode, colors } = useTheme();
 
-  const APP_VERSION = "1.0.0";
+  const APP_VERSION = "1.1.0";
   const DEVELOPER = "M. S. Sağlam";
 
   useEffect(() => {
@@ -65,7 +65,7 @@ export default function SettingsScreen() {
     <View style={[styles.footerContainer, { backgroundColor: colors.background }]}>
       <View style={[styles.divider, { borderBottomColor: colors.borderColor }]} />
       <Text style={[styles.footerTitle, { color: colors.text }]}>Litra App</Text>
-      <Text style={[styles.footerInfo, { color: colors.textSecondary }]}>Versiyon 1.0.0</Text>
+      <Text style={[styles.footerInfo, { color: colors.textSecondary }]}>Versiyon 1.1.0</Text>
       <Text style={[styles.footerInfo, { color: colors.textSecondary }]}>Developed by M. S. Sağlam</Text>
       <View style={styles.linkContainer}>
         <TouchableOpacity onPress={() => Alert.alert("Gizlilik Politikası", "Litra verilerinizi sadece cihazınızda saklar.")}>
