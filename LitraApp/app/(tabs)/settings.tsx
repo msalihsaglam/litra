@@ -5,6 +5,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { useNotification } from '../../context/NotificationContext';
 
 // 187. satırdaki hatayı çözen tanım:
 const { width } = Dimensions.get('window');
@@ -20,6 +21,7 @@ export default function SettingsScreen() {
   const [showDeleteWarning, setShowDeleteWarning] = useState(true);
   const isFocused = useIsFocused();
   const { isDarkMode, toggleDarkMode, colors } = useTheme();
+  const { settings, updateSettings, startNotificationTimer } = useNotification();
 
   const APP_VERSION = "1.1.0";
   const DEVELOPER = "M. S. Sağlam";
@@ -59,6 +61,64 @@ export default function SettingsScreen() {
       setCategoryColors(newColors);
       await AsyncStorage.setItem('category_colors', JSON.stringify(newColors));
     } catch (e) { console.error(e); }
+  };
+
+  const getFrequencyLabel = (frequency: string): string => {
+    switch (frequency) {
+      case 'hourly': return 'Saatlik';
+      case 'daily': return 'Günlük';
+      case 'weekly': return 'Haftalık';
+      default: return 'Günlük';
+    }
+  };
+
+  const getTimeLabel = (hour: number): string => {
+    return `${String(hour).padStart(2, '0')}:00`;
+  };
+
+  const showFrequencyOptions = () => {
+    Alert.alert(
+      "Bildirim Sıklığını Seç",
+      "Alıntıları ne sıklıkla almak istiyorsunuz?",
+      [
+        {
+          text: "Saatlik",
+          onPress: async () => {
+            await updateSettings({ frequency: 'hourly' });
+            Alert.alert("Başarılı", "Bildirimler saatlik olarak ayarlandı. (Her saat başında)");
+          }
+        },
+        {
+          text: "Günlük",
+          onPress: async () => {
+            await updateSettings({ frequency: 'daily' });
+            Alert.alert("Başarılı", `Bildirimler günlük olarak ayarlandı. (Saat ${getTimeLabel(settings.notificationHour)}'de)`);
+          }
+        },
+        {
+          text: "Haftalık",
+          onPress: async () => {
+            await updateSettings({ frequency: 'weekly' });
+            Alert.alert("Başarılı", `Bildirimler haftalık olarak ayarlandı. (Her hafta Saat ${getTimeLabel(settings.notificationHour)}'de)`);
+          }
+        },
+        { text: "İptal", onPress: () => {} }
+      ]
+    );
+  };
+
+  const showTimeOptions = () => {
+    const hours = Array.from({ length: 24 }, (_, i) => i);
+    const options = hours.map((hour) => ({
+      text: getTimeLabel(hour),
+      onPress: async () => {
+        await updateSettings({ notificationHour: hour });
+        Alert.alert("Başarılı", `Bildirim saati ${getTimeLabel(hour)}'e ayarlandı.`);
+      }
+    }));
+    options.push({ text: "İptal", onPress: () => {} });
+
+    Alert.alert("Bildirim Saatini Seç", "Alıntıları hangi saatte almak istiyorsunuz?", options);
   };
 
   const renderFooter = () => (
@@ -131,8 +191,83 @@ export default function SettingsScreen() {
               </View>
             </View>
 
+            {/* --- BİLDİRİM AYARLARI --- */}
+            <View style={[styles.settingsSection, { backgroundColor: colors.cardBackground, borderBottomColor: colors.borderColor }]}>
+              <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>BİLDİRİMLER</Text>
+              
+              {/* Notification Enable/Disable */}
+              <View style={[styles.settingRow, { borderBottomColor: colors.borderColor }]}>
+                <View style={styles.settingInfo}>
+                  <Ionicons name={settings.enabled ? "notifications" : "notifications-off-outline"} size={22} color="#FF9500" />
+                  <View style={{ marginLeft: 12, flex: 1 }}>
+                    <Text style={[styles.settingLabel, { color: colors.text }]}>Alıntı Bildirimleri</Text>
+                    <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>Rastgele alıntılar gönder</Text>
+                  </View>
+                </View>
+                <Switch
+                  value={settings.enabled}
+                  onValueChange={async (value) => {
+                    await updateSettings({ enabled: value });
+                    if (value) {
+                      const quotesData = await AsyncStorage.getItem('litra_quotes');
+                      if (quotesData) {
+                        const quotes = JSON.parse(quotesData);
+                        if (quotes.length > 0) {
+                          Alert.alert("Başarılı", "Bildirimler etkinleştirildi.");
+                        } else {
+                          Alert.alert("Bilgi", "Bildirim göndermek için en az bir alıntı eklemeniz gerekir.");
+                        }
+                      }
+                    } else {
+                      Alert.alert("Başarılı", "Bildirimler devre dışı bırakıldı.");
+                    }
+                  }}
+                />
+              </View>
+
+              {/* Notification Frequency */}
+              {settings.enabled && (
+                <>
+                  <View style={[styles.settingRow, { borderBottomColor: colors.borderColor }]}>
+                    <View style={styles.settingInfo}>
+                      <Ionicons name="time-outline" size={22} color="#34C759" />
+                      <View style={{ marginLeft: 12, flex: 1 }}>
+                        <Text style={[styles.settingLabel, { color: colors.text }]}>Bildirim Sıklığı</Text>
+                        <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>{getFrequencyLabel(settings.frequency)}</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => showFrequencyOptions()}
+                      style={{ paddingLeft: 10 }}
+                    >
+                      <Ionicons name="chevron-forward" size={22} color="#007AFF" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Notification Time - Saatlik haricinde göster */}
+                  {settings.frequency !== 'hourly' && (
+                    <View style={styles.settingRow}>
+                      <View style={styles.settingInfo}>
+                        <Ionicons name="alarm-outline" size={22} color="#34C759" />
+                        <View style={{ marginLeft: 12, flex: 1 }}>
+                          <Text style={[styles.settingLabel, { color: colors.text }]}>Bildirim Saati</Text>
+                          <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>{getTimeLabel(settings.notificationHour)}</Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => showTimeOptions()}
+                        style={{ paddingLeft: 10 }}
+                      >
+                        <Ionicons name="chevron-forward" size={22} color="#007AFF" />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </>
+              )}
+            </View>
+
             {/* --- ETİKET RENK AYARLARI --- */}
-            <View style={styles.categoriesHeader}>
+            <View style={[styles.settingsSection, { backgroundColor: colors.cardBackground, borderBottomColor: colors.borderColor }]}>
               <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>ETİKET RENKLERİ</Text>
             </View>
           </View>

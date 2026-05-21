@@ -211,10 +211,12 @@ export default function Index() {
         <View style={styles.manualSection}>
           {activeTab === 'manual' && (
             <TextInput 
-              style={[styles.input, { height: 80 }]} multiline 
-              placeholder="Alıntıyı buraya yazın..." value={quote} onChangeText={setQuote}
+              style={[styles.input, { height: 120, backgroundColor: colors.inputBackground, color: colors.text, borderColor: colors.borderColor }]}
+              multiline 
+              placeholder="Alıntıyı buraya yazın..." 
+              value={quote} 
+              onChangeText={setQuote}
               placeholderTextColor={colors.textSecondary}
-              style={{ color: colors.text }}
             />
           )}
           
