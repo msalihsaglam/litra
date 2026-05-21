@@ -4,16 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIsFocused } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
-
-interface QuoteItem {
-  id: string;
-  quote: string;
-  bookTitle: string;
-  author: string;
-  theme: string;
-  pageNumber?: string;
-  category?: string;
-}
+import { QuoteItem } from '../../context/MigrationContext';
 
 export default function MyQuotesScreen() {
   const [quotes, setQuotes] = useState<QuoteItem[]>([]);

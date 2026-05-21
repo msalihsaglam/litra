@@ -9,19 +9,13 @@ import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ExpoImagePicker from 'expo-image-picker';
 import { useTheme } from '../../context/ThemeContext';
+import { 
+  Book,
+  markQuotesOrphanedAfterBookDelete, 
+  updateQuotesAfterBookEdit 
+} from '../../context/MigrationContext';
 
 const { width, height } = Dimensions.get('window');
-
-interface Book {
-  id: string;
-  title: string;
-  author: string;
-  image?: string; // base64 - optional
-  status: 'okudum' | 'okuyacağım' | 'okuyorum';
-  category?: string; // etiket/kategori
-  dateAdded: string;
-  dateCompleted?: string;
-}
 
 // Dinamik import: Native picker kullan, Expo Go'da fallback
 let RNImageCropPicker: any = null;
@@ -40,6 +34,7 @@ export default function MyLibraryScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
+  const [editingBookOriginal, setEditingBookOriginal] = useState<Book | null>(null);  // Orijinal hali tut
   const [showDeleteWarning, setShowDeleteWarning] = useState(true);
   const [categoryColors, setCategoryColors] = useState<{[key: string]: string}>({});
   const isFocused = useIsFocused();
@@ -221,6 +216,8 @@ export default function MyLibraryScreen() {
     const handleDelete = async () => {
       const updatedBooks = books.filter(b => b.id !== bookId);
       await saveBooks(updatedBooks);
+      // Alıntıları işaretle - kitap silinince bookId'yi kaldır
+      await markQuotesOrphanedAfterBookDelete(bookId);
     };
 
     if (showDeleteWarning) {
@@ -251,7 +248,8 @@ export default function MyLibraryScreen() {
   };
 
   const openEditModal = (book: Book) => {
-    setEditingBook(book);
+    setEditingBook({ ...book });  // Kopya olarak kaydet
+    setEditingBookOriginal(book);  // Orijinali de kaydet
     setIsEditModalVisible(true);
   };
 
@@ -265,6 +263,14 @@ export default function MyLibraryScreen() {
       b.id === editingBook.id ? editingBook : b
     );
     await saveBooks(updatedBooks);
+    
+    // Kitap adı veya yazar değişmişse, alıntıları güncelle
+    if (editingBookOriginal && 
+        (editingBook.title !== editingBookOriginal.title || 
+         editingBook.author !== editingBookOriginal.author)) {
+      await updateQuotesAfterBookEdit(editingBook.id, editingBook.title, editingBook.author);
+    }
+    
     setIsEditModalVisible(false);
     Alert.alert('Başarılı', 'Kitap güncellendi!');
   };

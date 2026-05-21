@@ -7,6 +7,7 @@ import { useIsFocused } from '@react-navigation/native';
 import QuoteCard from '../../components/QuoteCard';
 import * as ExpoImagePicker from 'expo-image-picker';
 import { useTheme } from '../../context/ThemeContext';
+import { QuoteItem } from '../../context/MigrationContext';
 
 // Dinamik import: Normal build'de react-native-image-crop-picker kullan, Expo Go'da fallback
 let RNImageCropPicker: any = null;
@@ -38,6 +39,7 @@ export default function Index() {
   const [quote, setQuote] = useState("Rakamlar sınırları belirler; iyinin, mükemmelin sınırları yoktur.");
   const [bookTitle, setBookTitle] = useState("");
   const [author, setAuthor] = useState("");
+  const [bookId, setBookId] = useState<string | undefined>(undefined);  // NEW: bookId referansı
   const [pageNumber, setPageNumber] = useState(""); 
   const [category, setCategory] = useState("");     
   const [theme, setTheme] = useState('classic');
@@ -154,7 +156,7 @@ export default function Index() {
   const saveToLibrary = async () => {
     if (!quote || quote.length < 5) return;
     try {
-      const newEntry = {
+      const newEntry: QuoteItem = {
         id: Date.now().toString(),
         quote,
         bookTitle: bookTitle || "Bilinmeyen Kitap",
@@ -162,6 +164,8 @@ export default function Index() {
         pageNumber: pageNumber || "",
         category: category || "",
         theme,
+        bookId: bookId,  // NEW: bookId referansı kaydet
+        migrationVersion: 1,
         date: new Date().toLocaleDateString('tr-TR'),
       };
       const data = await AsyncStorage.getItem('litra_quotes');
@@ -171,6 +175,7 @@ export default function Index() {
       setQuote("Kitaptan bir alıntı taramak için kamerayı açın.");
       setBookTitle("");
       setAuthor("");
+      setBookId(undefined);  // Reset bookId
       setPageNumber("");
       setCategory("");
       Alert.alert("Kaydedildi!", "✨", [
@@ -289,6 +294,7 @@ export default function Index() {
                   onPress={() => {
                     setBookTitle(item.title);
                     setAuthor(item.author);
+                    setBookId(item.id);  // NEW: bookId set et
                     setBookModalVisible(false);
                   }}
                 >
