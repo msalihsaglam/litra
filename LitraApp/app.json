@@ -61,6 +61,13 @@
           "photosPermission": "Litra, seçtiğiniz kitap sayfası fotoğraflarından metin ayıklamak ve galerinizdeki alıntıları işlemek için fotoğraf erişimi ister.",
           "cameraPermission": "Litra, kitap sayfalarını doğrudan tarayabilmeniz ve alıntıları metne dönüştürebilmeniz için kamera erişimi ister."
         }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Litra, oluşturduğunuz Instagram Stories'i galeriye kaydetmek için fotoğraf kütüphanesi erişimi ister.",
+          "savePhotosPermission": "Litra, Story'leri kaydetmek için fotoğraf yazma izni ister."
+        }
       ]
     ],
     "experiments": {

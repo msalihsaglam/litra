@@ -5,6 +5,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 import { QuoteItem } from '../../context/MigrationContext';
+import StoryGenerator from '../../components/StoryGenerator';
 
 export default function MyQuotesScreen() {
   const [quotes, setQuotes] = useState<QuoteItem[]>([]);
@@ -16,6 +17,10 @@ export default function MyQuotesScreen() {
 
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<QuoteItem | null>(null);
+  
+  const [isStoryModalVisible, setIsStoryModalVisible] = useState(false);
+  const [selectedQuoteForStory, setSelectedQuoteForStory] = useState<QuoteItem | null>(null);
+  const [bookImage, setBookImage] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (isFocused) loadData();
@@ -69,6 +74,26 @@ export default function MyQuotesScreen() {
     ]);
   };
 
+  const openStoryModal = async (item: QuoteItem) => {
+    try {
+      // Kitabın fotoğrafını yükle
+      if (item.bookId) {
+        const booksData = await AsyncStorage.getItem('litra_books');
+        if (booksData) {
+          const books = JSON.parse(booksData);
+          const book = books.find((b: any) => b.id === item.bookId);
+          if (book && book.image) {
+            setBookImage(book.image);
+          }
+        }
+      }
+      setSelectedQuoteForStory(item);
+      setIsStoryModalVisible(true);
+    } catch (e) {
+      console.error('Story modal açılırken hata:', e);
+    }
+  };
+
   const renderItem = ({ item }: { item: QuoteItem }) => {
     const isDarkTheme = item.theme === 'modern' || item.theme === 'midnight';
     const tagBgColor = (item.category && categoryColors[item.category]) ? categoryColors[item.category] : '#F1F3F5';
@@ -90,9 +115,20 @@ export default function MyQuotesScreen() {
                 {item.pageNumber && <Text style={[styles.pageText, { color: isDarkTheme ? '#888' : '#AAA' }]}>S. {item.pageNumber}</Text>}
               </View>
             </View>
-            <TouchableOpacity onPress={() => deleteQuote(item.id)} style={styles.deleteArea}>
-              <Text style={styles.deleteBtn}>🗑️</Text>
-            </TouchableOpacity>
+            <View style={styles.actionButtons}>
+              <TouchableOpacity 
+                onPress={() => openStoryModal(item)} 
+                style={styles.shareButton}
+              >
+                <Text style={styles.shareBtn}>✨</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={() => deleteQuote(item.id)} 
+                style={styles.deleteArea}
+              >
+                <Text style={styles.deleteBtn}>🗑️</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </TouchableOpacity>
@@ -185,6 +221,33 @@ export default function MyQuotesScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <Modal 
+        visible={isStoryModalVisible} 
+        animationType="slide" 
+        transparent={false}
+        onRequestClose={() => {
+          setIsStoryModalVisible(false);
+          setSelectedQuoteForStory(null);
+          setBookImage(undefined);
+        }}
+      >
+        {selectedQuoteForStory && (
+          <StoryGenerator
+            quote={selectedQuoteForStory.quote}
+            bookTitle={selectedQuoteForStory.bookTitle}
+            author={selectedQuoteForStory.author}
+            theme={selectedQuoteForStory.theme}
+            category={selectedQuoteForStory.category}
+            bookImageUri={bookImage}
+            onClose={() => {
+              setIsStoryModalVisible(false);
+              setSelectedQuoteForStory(null);
+              setBookImage(undefined);
+            }}
+          />
+        )}
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -218,6 +281,9 @@ const styles = StyleSheet.create({
   accentLine: { width: 3, height: 28, marginRight: 10, borderRadius: 2 },
   bookInfo: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
   pageText: { fontSize: 10, fontWeight: '600', marginTop: 2 },
+  actionButtons: { flexDirection: 'row', gap: 8 },
+  shareButton: { padding: 8 },
+  shareBtn: { fontSize: 18, opacity: 0.7 },
   deleteArea: { padding: 8 },
   deleteBtn: { fontSize: 18, opacity: 0.6 },
   emptyState: { alignItems: 'center', marginTop: 50 },
